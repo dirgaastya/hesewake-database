@@ -8,7 +8,7 @@
   },
   "scripts": {
     "start": "node src/server.js",
-    "test": "node --test",
+    "test": "node --test \"test/*.test.js\"",
     "import": "node src/cli/import.js",
     "export": "node src/cli/export.js",
     "backup": "node src/cli/backup.js",
