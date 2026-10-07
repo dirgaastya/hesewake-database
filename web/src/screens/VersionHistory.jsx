@@ -26,28 +26,24 @@ function snapshotText(entry) {
   return [`# ${entry.title}`, ...meta, entry.tags?.length ? `tag: ${entry.tags.join(', ')}` : null, '', entry.content ?? ''].filter((line) => line !== null).join('\n');
 }
 
+// Isi versi yang bisa dibaca. Item biasa langsung dipakai; secret didekripsi dulu di browser.
+// Hasil dekripsi disimpan bersama entries sumbernya supaya hasil lama tidak pernah dipakai untuk daftar baru.
 function useReadable(entries, encrypted) {
   const { unlocked, decrypt } = useVault();
-  const [plain, setPlain] = useState(null);
+  const [decrypted, setDecrypted] = useState({ source: null, value: null });
   useEffect(() => {
+    if (!encrypted || !unlocked) return undefined;
     let cancelled = false;
-    if (!encrypted) {
-      setPlain(entries);
-      return undefined;
-    }
-    if (!unlocked) {
-      setPlain(null);
-      return undefined;
-    }
     // decrypt stabil (useCallback), jadi effect ini tidak berulang walau status vault diperbarui.
-    Promise.all(entries.map(async (entry) => ({ ...entry, content: entry.content ? await decrypt(entry.content).catch(() => '(tidak bisa dibuka)') : '' }))).then((result) => {
-      if (!cancelled) setPlain(result);
+    Promise.all(entries.map(async (entry) => ({ ...entry, content: entry.content ? await decrypt(entry.content).catch(() => '(tidak bisa dibuka)') : '' }))).then((value) => {
+      if (!cancelled) setDecrypted({ source: entries, value });
     });
     return () => {
       cancelled = true;
     };
   }, [entries, encrypted, unlocked, decrypt]);
-  return plain;
+  if (!encrypted) return entries;
+  return unlocked && decrypted.source === entries ? decrypted.value : null;
 }
 
 export function VersionHistory({ itemId, onClose }) {

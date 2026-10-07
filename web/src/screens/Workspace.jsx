@@ -19,6 +19,7 @@ import { Sidebar } from './Sidebar.jsx';
 import { ItemDetail } from './ItemDetail.jsx';
 import { ItemForm } from './ItemForm.jsx';
 import { VersionHistory } from './VersionHistory.jsx';
+import { ErrorBoundary } from '../components/ErrorBoundary.jsx';
 
 const LIMIT = 100;
 
@@ -231,6 +232,7 @@ export function Workspace({ route }) {
   else if (selectedId != null && route.mode === 'edit') detail = <ItemForm key={`edit-${selectedId}`} itemId={selectedId} onDone={() => select(selectedId)} />;
   else if (selectedId != null && route.mode === 'history') detail = <VersionHistory key={`history-${selectedId}`} itemId={selectedId} onClose={() => select(selectedId)} />;
   else if (selectedId != null) detail = <ItemDetail key={selectedId} itemId={selectedId} suffix={suffix} onClose={closeDetail} />;
+  if (detail) detail = <ErrorBoundary resetKey={`${selectedId}-${route.mode}`}>{detail}</ErrorBoundary>;
 
   return (
     <div className="grid h-full grid-rows-[48px_minmax(0,1fr)] bg-canvas">

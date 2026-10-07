@@ -12,6 +12,7 @@ import { Workspace } from './screens/Workspace.jsx';
 import { ImportScreen } from './screens/ImportScreen.jsx';
 import { SettingsScreen } from './screens/SettingsScreen.jsx';
 import { GlobalLayer } from './screens/GlobalLayer.jsx';
+import { ErrorBoundary } from './components/ErrorBoundary.jsx';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -23,12 +24,12 @@ function Shell() {
   const { pathname } = useLocation();
   const route = matchRoute(pathname);
   return (
-    <>
+    <ErrorBoundary resetKey={pathname}>
       {route.screen === 'import' && <ImportScreen />}
       {route.screen === 'settings' && <SettingsScreen />}
       {route.screen === 'workspace' && <Workspace route={route} />}
       <GlobalLayer route={route} />
-    </>
+    </ErrorBoundary>
   );
 }
 
