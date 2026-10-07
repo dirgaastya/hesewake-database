@@ -14,7 +14,7 @@ const CIPHER = 'v1.AAAAAAAAAAAAAAAA.c2VjcmV0LWRhdGE';
 function setup(options = {}) {
   const repo = createItemRepository(openDb());
   const storage = createFileStorage(mkdtempSync(join(tmpdir(), 'hdb-api-')));
-  const app = createApp({ repo, storage, importer: createImporter({ repo, storage }), ...options });
+  const app = createApp({ repo, storage, importer: createImporter({ repo, storage }), auth: false, ...options });
   return { app, storage };
 }
 

@@ -4,9 +4,24 @@ import { bodyLimit } from 'hono/body-limit';
 import { TYPES } from '../items/types.js';
 import { extractText } from '../files/extract.js';
 import { fetchLinkPreview } from '../links/preview.js';
-import { AppError, NotFoundError, ValidationError } from '../errors.js';
+import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
+import { hostGuard, originGuard, securityHeaders, createRateLimiter, clientKey, requestHost } from './security.js';
+import { AppError, AuthError, ForbiddenError, NotFoundError, ValidationError } from '../errors.js';
 
 const MB = 1024 * 1024;
+const SESSION_COOKIE = 'hdb_session';
+const PUBLIC_PATHS = new Set(['/api/auth/status', '/api/auth/params', '/api/auth/setup', '/api/auth/login']);
+const LOCAL_HOSTS = new Set(['127.0.0.1', 'localhost']);
+
+function setSessionCookie(c, { token, expiresAt }) {
+  setCookie(c, SESSION_COOKIE, token, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'Strict',
+    path: '/',
+    maxAge: Math.max(0, Math.floor((Date.parse(expiresAt) - Date.now()) / 1000)),
+  });
+}
 
 function parseOptionalInt(value, name) {
   if (value === undefined || value === null || value === '') return undefined;
@@ -46,10 +61,14 @@ export function createApp({
   repo,
   storage,
   importer,
+  auth,
+  allowedHosts,
+  rateLimiter = createRateLimiter(),
   linkPreview = fetchLinkPreview,
   maxUploadBytes = 100 * MB,
   maxImportBytes = 1024 * MB,
 }) {
+  if (auth === undefined) throw new Error('createApp: opsi auth wajib (auth: false hanya untuk test)');
   const app = new Hono().basePath('/api');
 
   app.onError((err, c) => {
@@ -57,6 +76,68 @@ export function createApp({
     console.error(err);
     return c.json({ error: 'Internal server error' }, 500);
   });
+
+  app.use('*', securityHeaders());
+  if (allowedHosts) app.use('*', hostGuard(allowedHosts), originGuard(allowedHosts));
+
+  if (auth) {
+    app.use('*', async (c, next) => {
+      if (PUBLIC_PATHS.has(c.req.path)) return next();
+      const session = auth.verifySession(getCookie(c, SESSION_COOKIE));
+      if (!session) throw new AuthError();
+      c.set('session', session);
+      await next();
+    });
+
+    app.get('/auth/status', (c) =>
+      c.json({ hasAccount: auth.hasAccount(), authenticated: Boolean(auth.verifySession(getCookie(c, SESSION_COOKIE))) }),
+    );
+
+    app.get('/auth/params', (c) => {
+      const params = auth.params();
+      if (!params) throw new NotFoundError('Akun belum dibuat');
+      return c.json(params);
+    });
+
+    app.post('/auth/setup', async (c) => {
+      const hostname = requestHost(c).split(':')[0];
+      if (!LOCAL_HOSTS.has(hostname)) throw new ForbiddenError('Buat akun dari laptop server lewat http://127.0.0.1');
+      setSessionCookie(c, auth.setup(await readJson(c)));
+      return c.json({ ok: true }, 201);
+    });
+
+    app.post('/auth/login', async (c) => {
+      const key = clientKey(c);
+      rateLimiter.check(key);
+      const body = await readJson(c);
+      try {
+        const session = auth.login(body);
+        rateLimiter.reset(key);
+        setSessionCookie(c, session);
+        return c.json({ wrappedVaultKey: auth.wrappedVaultKey() });
+      } catch (err) {
+        if (err instanceof AuthError) rateLimiter.fail(key);
+        throw err;
+      }
+    });
+
+    app.post('/auth/logout', (c) => {
+      auth.logout(getCookie(c, SESSION_COOKIE));
+      deleteCookie(c, SESSION_COOKIE, { path: '/', secure: true });
+      return c.body(null, 204);
+    });
+
+    app.get('/auth/vault-key', (c) => c.json({ wrappedVaultKey: auth.wrappedVaultKey() }));
+    app.get('/auth/sessions', (c) => c.json(auth.sessions(c.get('session').id)));
+    app.delete('/auth/sessions/:id', (c) => {
+      auth.revokeSession(c.req.param('id'));
+      return c.body(null, 204);
+    });
+    app.post('/auth/password', async (c) => {
+      auth.changePassword(await readJson(c), { keepSessionId: c.get('session').id });
+      return c.json({ ok: true });
+    });
+  }
 
   app.get('/types', (c) => c.json(TYPES));
   app.get('/tags', (c) => c.json(repo.tags()));
