@@ -138,6 +138,23 @@ test('upload, cari, download (stream), trash, hapus permanen file', async () => 
   assert.equal(existsSync(abs), false);
 });
 
+test('download inline hanya untuk tipe aman', async () => {
+  const { app } = setup();
+  const upload = async (name, type) => {
+    const form = new FormData();
+    form.append('file', new Blob(['x'], { type }), name);
+    return (await app.request('/api/files', { method: 'POST', body: form })).json();
+  };
+  const png = await upload('ss.png', 'image/png');
+  const svg = await upload('logo.svg', 'image/svg+xml');
+  const pngRes = await app.request(`/api/items/${png.id}/download?inline=1`);
+  assert.match(pngRes.headers.get('content-disposition'), /^inline;/);
+  assert.equal(pngRes.headers.get('x-content-type-options'), 'nosniff');
+  const svgRes = await app.request(`/api/items/${svg.id}/download?inline=1`);
+  assert.match(svgRes.headers.get('content-disposition'), /^attachment;/);
+  assert.match(svgRes.headers.get('content-security-policy'), /default-src 'self'/);
+});
+
 test('upload: tanpa file → 400, melebihi batas → 413', async () => {
   const { app } = setup({ maxUploadBytes: 200 });
   const empty = new FormData();
@@ -163,6 +180,11 @@ test('import banyak file sekaligus, duplikat dilewati', async () => {
   const summary = await res.json();
   assert.deepEqual({ created: summary.created, skipped: summary.skipped, failed: summary.failed }, { created: 2, skipped: 1, failed: [] });
   assert.equal(summary.itemIds.length, 2);
+  assert.deepEqual(summary.results.map((r) => [r.name, r.status, r.type]), [
+    ['satu.sql', 'created', 'query'],
+    ['rapat.md', 'created', 'note'],
+    ['salinan-satu.sql', 'skipped', 'query'],
+  ]);
   assert.equal((await (await app.request('/api/items?tag=impor')).json()).length, 2);
 });
 

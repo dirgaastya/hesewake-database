@@ -22,6 +22,8 @@ export async function api(path, { method = 'GET', body, form, signal } = {}) {
     if (err.name === 'AbortError') throw err;
     throw new ApiError(0, 'Server tidak bisa dihubungi. Cek apakah laptop server menyala.');
   }
+  // Sesi habis atau dicabut dari perangkat lain: App kembali ke layar login.
+  if (res.status === 401 && !path.startsWith('/auth/')) window.dispatchEvent(new Event('hdb:unauthorized'));
   if (res.status === 204) return null;
   const isJson = (res.headers.get('content-type') ?? '').includes('application/json');
   const data = isJson ? await res.json() : await res.text();

@@ -94,6 +94,19 @@ describe('diffLines', () => {
   });
 });
 
+test('generatePassword memuat semua jenis karakter', async () => {
+  const { generatePassword } = await import('./password.js');
+  for (let i = 0; i < 50; i++) {
+    const password = generatePassword(20);
+    expect(password).toHaveLength(20);
+    expect(password).toMatch(/[a-z]/);
+    expect(password).toMatch(/[A-Z]/);
+    expect(password).toMatch(/[2-9]/);
+    expect(password).toMatch(/[!@#$%^&*\-_=+?]/);
+    expect(password).not.toMatch(/[l1O0]/);
+  }
+});
+
 test('18 tipe punya kode dan kategori', () => {
   expect(Object.keys(TYPE_META)).toHaveLength(18);
   for (const meta of Object.values(TYPE_META)) {

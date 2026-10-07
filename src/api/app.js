@@ -10,6 +10,7 @@ import { AppError, AuthError, ForbiddenError, NotFoundError, ValidationError } f
 
 const MB = 1024 * 1024;
 const SESSION_COOKIE = 'hdb_session';
+const INLINE_MIME = /^(image\/(png|jpeg|gif|webp)|application\/pdf|text\/plain)$/;
 const PUBLIC_PATHS = new Set(['/api/auth/status', '/api/auth/params', '/api/auth/setup', '/api/auth/login']);
 const LOCAL_HOSTS = new Set(['127.0.0.1', 'localhost']);
 
@@ -77,7 +78,12 @@ export function createApp({
     return c.json({ error: 'Internal server error' }, 500);
   });
 
-  app.use('*', securityHeaders());
+  // PDF yang dibuka inline butuh plugin viewer browser; CSP object-src 'none' akan memblokirnya.
+  const headers = securityHeaders();
+  app.use('*', async (c, next) => {
+    await headers(c, next);
+    if (c.res.headers.get('content-disposition')?.startsWith('inline;')) c.res.headers.delete('content-security-policy');
+  });
   if (allowedHosts) app.use('*', hostGuard(allowedHosts), originGuard(allowedHosts));
 
   if (auth) {
@@ -220,10 +226,12 @@ export function createApp({
   app.get('/items/:id/download', (c) => {
     const item = repo.get(parseId(c));
     if (!item.file) throw new NotFoundError('Item ini tidak punya file');
+    // Tampil di browser hanya untuk tipe yang tidak bisa menjalankan script (bukan SVG/HTML).
+    const inline = parseFlag(c.req.query('inline')) && INLINE_MIME.test(item.file.mime);
     return c.body(Readable.toWeb(storage.openReadStream(item.file.path)), 200, {
       'Content-Type': item.file.mime,
       'Content-Length': String(item.file.size),
-      'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(item.file.name)}`,
+      'Content-Disposition': `${inline ? 'inline' : 'attachment'}; filename*=UTF-8''${encodeURIComponent(item.file.name)}`,
     });
   });
 
@@ -233,14 +241,16 @@ export function createApp({
     if (!files.length) throw new ValidationError('Pilih minimal satu file');
     const tags = parseTags([form.tags ?? ''].flat()[0]);
 
-    const summary = { created: 0, skipped: 0, failed: [], itemIds: [] };
+    const summary = { created: 0, skipped: 0, failed: [], itemIds: [], results: [] };
     for (const file of files) {
       try {
         const result = await importer.importFile({ buffer: Buffer.from(await file.arrayBuffer()), name: file.name, mime: file.type, tags });
         summary[result.status]++;
         if (result.status === 'created') summary.itemIds.push(result.item.id);
+        summary.results.push({ name: file.name, status: result.status, itemId: result.item.id, type: result.item.type });
       } catch (err) {
         summary.failed.push({ path: file.name, error: err.message });
+        summary.results.push({ name: file.name, status: 'failed', error: err.message });
       }
     }
     return c.json(summary);
