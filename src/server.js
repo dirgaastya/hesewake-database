@@ -2,6 +2,8 @@ import { serve } from '@hono/node-server';
 import { openContext } from './cli/context.js';
 import { createApp } from './api/app.js';
 import { createBackup, hasBackupFor } from './backup/backup.js';
+import { createAccountService } from './auth/account.js';
+import { createRateLimiter } from './api/security.js';
 
 const HOUR_MS = 60 * 60 * 1000;
 
@@ -32,6 +34,9 @@ const app = createApp({
   repo,
   storage,
   importer,
+  auth: createAccountService(db, { sessionDays: config.sessionDays }),
+  allowedHosts: config.allowedHosts,
+  rateLimiter: createRateLimiter(),
   maxUploadBytes: config.maxUploadBytes,
   maxImportBytes: config.maxImportBytes,
 });

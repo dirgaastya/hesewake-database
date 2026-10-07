@@ -19,6 +19,8 @@ test('loadConfig default', () => {
     backupKeep: 7,
     maxUploadBytes: 100 * MB,
     maxImportBytes: 1024 * MB,
+    allowedHosts: ['127.0.0.1:4321', 'localhost:4321'],
+    sessionDays: 30,
   });
 });
 
@@ -41,4 +43,10 @@ test('loadConfig override lewat env, host tetap localhost', () => {
   assert.equal(config.backupKeep, 14);
   assert.equal(config.maxUploadBytes, 20 * MB);
   assert.equal(config.maxImportBytes, 200 * MB);
+});
+
+test('loadConfig: host Tailscale dan masa sesi', () => {
+  const config = loadConfig({ HDB_PORT: '5000', HDB_ALLOWED_HOSTS: 'ThinkPad.tail1234.ts.net, ', HDB_SESSION_DAYS: '14' });
+  assert.deepEqual(config.allowedHosts, ['127.0.0.1:5000', 'localhost:5000', 'thinkpad.tail1234.ts.net']);
+  assert.equal(config.sessionDays, 14);
 });

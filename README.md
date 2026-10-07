@@ -21,6 +21,29 @@ npm test
 | `HDB_MAX_UPLOAD_MB` | `100` | Batas satu file upload |
 | `HDB_MAX_IMPORT_MB` | `1024` | Batas satu request import |
 
+## Akses dari HP dan laptop lain (Tailscale)
+
+Server tetap hanya listen di `127.0.0.1`. Perangkat lain masuk lewat jaringan privat Tailscale, tidak lewat internet publik.
+
+1. Install Tailscale di laptop ini dan di HP/laptop lain, login dengan akun yang sama.
+2. Di admin Tailscale (DNS), aktifkan **MagicDNS** dan **HTTPS Certificates**.
+3. Di laptop server: `tailscale serve --bg 4321`. Cek URL-nya dengan `tailscale serve status`, misalnya `https://thinkpad.tail1234.ts.net`.
+4. Jalankan server dengan host itu diizinkan:
+   `HDB_ALLOWED_HOSTS=thinkpad.tail1234.ts.net npm start`
+5. Buat akun pertama kali dari laptop server (`http://127.0.0.1:4321`). Setelah itu login dari perangkat lain lewat URL `ts.net`.
+6. Laptop harus menyala dan tidak sleep. Supaya server jalan otomatis saat login Windows:
+   `schtasks /Create /SC ONLOGON /TN hesewake-database /TR "cmd /c cd /d C:\Users\ThinkPad\Desktop\project\personal\hesewake-database && set HDB_ALLOWED_HOSTS=thinkpad.tail1234.ts.net && npm start"`
+
+Jangan pakai `tailscale funnel`: itu membuka server ke internet publik.
+
+| Env | Default | Keterangan |
+|---|---|---|
+| `HDB_ALLOWED_HOSTS` | (kosong) | Nama host `ts.net`, pisahkan dengan koma |
+| `HDB_SESSION_DAYS` | `30` | Lama login bertahan per perangkat |
+
+Semua endpoint `/api/*` butuh login, kecuali `/api/auth/status`, `/api/auth/params`, `/api/auth/setup`, dan `/api/auth/login`.
+Master password tidak pernah dikirim ke server: browser menurunkan kunci login dan kunci enkripsi darinya (`src/shared/vault-crypto.js`).
+
 ## Import massal
 
 ```bash
