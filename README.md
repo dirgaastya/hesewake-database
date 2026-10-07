@@ -44,6 +44,29 @@ Jangan pakai `tailscale funnel`: itu membuka server ke internet publik.
 Semua endpoint `/api/*` butuh login, kecuali `/api/auth/status`, `/api/auth/params`, `/api/auth/setup`, dan `/api/auth/login`.
 Master password tidak pernah dikirim ke server: browser menurunkan kunci login dan kunci enkripsi darinya (`src/shared/vault-crypto.js`).
 
+## CLI `hdb`
+
+`npm link` sekali di folder ini, lalu `hdb` bisa dipanggil dari mana saja. CLI membaca DB langsung, server tidak perlu jalan.
+
+```bash
+hdb search type:query tag:simrs rawat inap      # cari, operator sama dengan UI
+hdb show 128                                    # detail (secret disembunyikan)
+hdb show 119 --reveal                           # minta master password, tampilkan secret
+hdb copy 128                                    # salin ke clipboard, isi {{variabel}} dulu
+cat pasien.sql | hdb add query --title "Pasien per bangsal" --content - --tag simrs --ticket 8193
+hdb add secret --title "DB staging" --meta username=root   # nilai ditanya tanpa ditampilkan
+hdb add file --path "D:/Dokumen/spek.pdf" --tag laporan
+hdb ticket 8193                                 # info tiket Odoo + item terkait
+hdb ticket 8193 --worklog "Ubah join tarif ke kelas_kamar"
+hdb open 128                                    # buka di browser
+```
+
+Tambah `--json` di `search`, `show`, dan `ticket` untuk dipakai skrip lain (misalnya hesewake-cli).
+
+## Integrasi Odoo
+
+Kalau hesewake-cli ada di `~/Desktop/project/hesewake-cli` (atau `HESEWAKE_CLI_DIR`) dan sudah login, server dan `hdb ticket` menampilkan judul, stage, dan link tiket Odoo untuk item yang punya nomor tiket. Kredensial Odoo tetap dikelola hesewake-cli; hesewake-database tidak membaca atau menyimpannya.
+
 ## Import massal
 
 ```bash
