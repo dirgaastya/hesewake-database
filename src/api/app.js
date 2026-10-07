@@ -150,6 +150,7 @@ export function createApp({
       ticketId: parseOptionalInt(q.ticket, 'ticket'),
       archived: parseFlag(q.archived),
       trashed: parseFlag(q.trashed),
+      pinned: q.pinned ? parseFlag(q.pinned) : undefined,
       limit: parseOptionalInt(q.limit, 'limit') ?? 50,
       offset: parseOptionalInt(q.offset, 'offset') ?? 0,
     };

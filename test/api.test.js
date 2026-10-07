@@ -54,6 +54,13 @@ test('arsip: hilang dari list default, muncul di ?archived=1', async () => {
   assert.deepEqual(ids(await (await app.request('/api/items?archived=1')).json()), [item.id]);
 });
 
+test('filter pinned', async () => {
+  const { app } = setup();
+  await app.request('/api/items', json('POST', { type: 'note', title: 'Biasa' }));
+  const pinned = await (await app.request('/api/items', json('POST', { type: 'note', title: 'Penting', pinned: true }))).json();
+  assert.deepEqual(ids(await (await app.request('/api/items?pinned=1')).json()), [pinned.id]);
+});
+
 test('versi: daftar dan kembalikan', async () => {
   const { app } = setup();
   const item = await (await app.request('/api/items', json('POST', { type: 'note', title: 'SOP release', content: 'langkah 1' }))).json();
