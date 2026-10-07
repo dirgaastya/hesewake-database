@@ -6,6 +6,7 @@ import { createBackup, hasBackupFor } from './backup/backup.js';
 import { createAccountService } from './auth/account.js';
 import { createRateLimiter } from './api/security.js';
 import { createRootApp } from './api/root.js';
+import { createTicketService, loadHesewakeCli } from './integrations/odoo.js';
 
 const HOUR_MS = 60 * 60 * 1000;
 
@@ -32,10 +33,18 @@ function dailyJobs() {
 dailyJobs();
 setInterval(dailyJobs, HOUR_MS).unref();
 
+const odoo = await loadHesewakeCli(config.hesewakeCliDir).catch((err) => {
+  console.warn(`Integrasi Odoo dimatikan: ${err.message}`);
+  return { loader: null, odooUrl: null };
+});
+const tickets = createTicketService(odoo);
+if (tickets.available) console.log(`Integrasi Odoo aktif lewat hesewake-cli (${odoo.odooUrl})`);
+
 const api = createApp({
   repo,
   storage,
   importer,
+  tickets: tickets.available ? tickets : undefined,
   auth: createAccountService(db, { sessionDays: config.sessionDays }),
   allowedHosts: config.allowedHosts,
   rateLimiter: createRateLimiter(),

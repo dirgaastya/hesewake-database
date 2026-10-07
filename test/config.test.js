@@ -21,6 +21,7 @@ test('loadConfig default', () => {
     maxImportBytes: 1024 * MB,
     allowedHosts: ['127.0.0.1:4321', 'localhost:4321'],
     sessionDays: 30,
+    hesewakeCliDir: join(homedir(), 'Desktop', 'project', 'hesewake-cli'),
   });
 });
 

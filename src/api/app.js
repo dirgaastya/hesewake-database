@@ -7,6 +7,7 @@ import { fetchLinkPreview } from '../links/preview.js';
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
 import { hostGuard, originGuard, securityHeaders, createRateLimiter, clientKey, requestHost } from './security.js';
 import { AppError, AuthError, ForbiddenError, NotFoundError, ValidationError } from '../errors.js';
+import { TicketUnavailableError } from '../integrations/odoo.js';
 
 const MB = 1024 * 1024;
 const SESSION_COOKIE = 'hdb_session';
@@ -63,6 +64,7 @@ export function createApp({
   storage,
   importer,
   auth,
+  tickets,
   allowedHosts,
   rateLimiter = createRateLimiter(),
   linkPreview = fetchLinkPreview,
@@ -260,6 +262,11 @@ export function createApp({
     const form = await c.req.parseBody();
     if (!(form.file instanceof File)) throw new ValidationError('Field "file" wajib diisi (hasil export bookmark browser)');
     return c.json(importer.importBookmarks(await form.file.text(), { tags: parseTags(form.tags) }));
+  });
+
+  app.get('/tickets/:id', async (c) => {
+    if (!tickets) throw new TicketUnavailableError();
+    return c.json(await tickets.get(parseId(c)));
   });
 
   app.get('/link-preview', async (c) => {

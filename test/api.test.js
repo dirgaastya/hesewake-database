@@ -212,3 +212,14 @@ test('GET /api/link-preview', async () => {
   assert.deepEqual(calls, ['https://laravel.com']);
   assert.equal((await app.request('/api/link-preview')).status, 400);
 });
+
+test('GET /api/tickets/:id', async () => {
+  const { app } = setup({
+    tickets: { get: async (id) => ({ id, name: 'Hotfix', stage: 'TODO', project: 'Medicare', deadline: null, url: `https://x/web#id=${id}` }) },
+  });
+  assert.equal((await (await app.request('/api/tickets/8193')).json()).name, 'Hotfix');
+  const { app: without } = setup();
+  const res = await without.request('/api/tickets/8193');
+  assert.equal(res.status, 503);
+  assert.match((await res.json()).error, /hesewake-cli/);
+});
