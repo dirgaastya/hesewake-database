@@ -9,18 +9,24 @@ const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select
 export function Dialog({ open, onClose, title, description, children, footer, role = 'dialog', width = 400, initialFocusRef }) {
   const panelRef = useRef(null);
   const previous = useRef(null);
+  // onClose biasanya fungsi inline yang berubah tiap render; simpan di ref supaya effect fokus
+  // hanya jalan saat dialog dibuka/ditutup, bukan di setiap ketikan.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  const initialFocus = useRef(initialFocusRef);
+  initialFocus.current = initialFocusRef;
 
   useEffect(() => {
     if (!open) return undefined;
     previous.current = document.activeElement;
     const timer = setTimeout(() => {
-      const target = initialFocusRef?.current ?? panelRef.current?.querySelector(FOCUSABLE);
+      const target = initialFocus.current?.current ?? panelRef.current?.querySelector(FOCUSABLE);
       target?.focus();
     }, 0);
     const onKey = (event) => {
       if (event.key === 'Escape') {
         event.stopPropagation();
-        onClose?.();
+        onCloseRef.current?.();
       }
       if (event.key === 'Tab' && panelRef.current) {
         const nodes = [...panelRef.current.querySelectorAll(FOCUSABLE)];
@@ -42,7 +48,7 @@ export function Dialog({ open, onClose, title, description, children, footer, ro
       document.removeEventListener('keydown', onKey, true);
       previous.current?.focus?.();
     };
-  }, [open, onClose, initialFocusRef]);
+  }, [open]);
 
   return createPortal(
     <AnimatePresence>
