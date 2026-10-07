@@ -1,0 +1,149 @@
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/jetbrains-mono";
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Token dari design system Hesewake (https://claude.ai/artifact/65tE6KrCyvfoMsXsrSemkt). */
+:root {
+  --canvas: #fafafa;
+  --surface: #ffffff;
+  --surface-2: #f4f4f5;
+  --line: #e4e4e7;
+  --line-strong: #d4d4d8;
+  --fg: #18181b;
+  --fg-muted: #52525b;
+  --fg-subtle: #71717a;
+  --accent: #4f46e5;
+  --accent-hover: #4338ca;
+  --on-accent: #ffffff;
+  --accent-text: #4338ca;
+  --accent-soft: #eef2ff;
+  --focus: #4f46e5;
+  --inverse: #18181b;
+  --on-inverse: #fafafa;
+  --inverse-success: #34d399;
+  --success: #047857;
+  --warning: #b45309;
+  --danger: #dc2626;
+  --danger-soft: #fef2f2;
+  --info: #0369a1;
+  --mark: #fef08a;
+  --cat-catatan: #0284c7;
+  --cat-kode: #7c3aed;
+  --cat-error: #e11d48;
+  --cat-kerja: #0d9488;
+  --cat-referensi: #d97706;
+  --cat-secret: #71717a;
+  --float: 0 8px 24px rgba(9, 9, 11, 0.12), 0 0 0 1px rgba(9, 9, 11, 0.06);
+  color-scheme: light;
+}
+
+.dark {
+  --canvas: #09090b;
+  --surface: #18181b;
+  --surface-2: #27272a;
+  --line: #3f3f46;
+  --line-strong: #52525b;
+  --fg: #fafafa;
+  --fg-muted: #d4d4d8;
+  --fg-subtle: #a1a1aa;
+  --accent-text: #818cf8;
+  --accent-soft: rgba(99, 102, 241, 0.18);
+  --focus: #818cf8;
+  --inverse: #fafafa;
+  --on-inverse: #18181b;
+  --inverse-success: #047857;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  --danger-soft: rgba(248, 113, 113, 0.12);
+  --info: #38bdf8;
+  --mark: rgba(250, 204, 21, 0.28);
+  --cat-catatan: #38bdf8;
+  --cat-kode: #a78bfa;
+  --cat-error: #fb7185;
+  --cat-kerja: #2dd4bf;
+  --cat-referensi: #fbbf24;
+  --cat-secret: #a1a1aa;
+  --float: 0 8px 24px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, Consolas, monospace;
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-on-accent: var(--on-accent);
+  --color-accent-text: var(--accent-text);
+  --color-accent-soft: var(--accent-soft);
+  --color-focus: var(--focus);
+  --color-inverse: var(--inverse);
+  --color-on-inverse: var(--on-inverse);
+  --color-inverse-success: var(--inverse-success);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-mark: var(--mark);
+  --color-cat-catatan: var(--cat-catatan);
+  --color-cat-kode: var(--cat-kode);
+  --color-cat-error: var(--cat-error);
+  --color-cat-kerja: var(--cat-kerja);
+  --color-cat-referensi: var(--cat-referensi);
+  --color-cat-secret: var(--cat-secret);
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --shadow-float: var(--float);
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 20px;
+    font-feature-settings: "cv11", "ss01";
+    background: var(--canvas);
+    color: var(--fg);
+    -webkit-font-smoothing: antialiased;
+  }
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 1px;
+  }
+  mark {
+    background: var(--mark);
+    color: inherit;
+    border-radius: 2px;
+    padding: 0 1px;
+  }
+  button {
+    cursor: pointer;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
+  }
+}

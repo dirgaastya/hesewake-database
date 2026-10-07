@@ -1,9 +1,11 @@
+import { fileURLToPath } from 'node:url';
 import { serve } from '@hono/node-server';
 import { openContext } from './cli/context.js';
 import { createApp } from './api/app.js';
 import { createBackup, hasBackupFor } from './backup/backup.js';
 import { createAccountService } from './auth/account.js';
 import { createRateLimiter } from './api/security.js';
+import { createRootApp } from './api/root.js';
 
 const HOUR_MS = 60 * 60 * 1000;
 
@@ -30,7 +32,7 @@ function dailyJobs() {
 dailyJobs();
 setInterval(dailyJobs, HOUR_MS).unref();
 
-const app = createApp({
+const api = createApp({
   repo,
   storage,
   importer,
@@ -40,6 +42,8 @@ const app = createApp({
   maxUploadBytes: config.maxUploadBytes,
   maxImportBytes: config.maxImportBytes,
 });
+
+const app = createRootApp({ api, distDir: fileURLToPath(new URL('../web/dist', import.meta.url)) });
 
 serve({ fetch: app.fetch, port: config.port, hostname: config.host }, (info) => {
   console.log(`hesewake-database jalan di http://${config.host}:${info.port} (data: ${config.dataDir})`);
