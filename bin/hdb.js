@@ -70,5 +70,6 @@ if (argv[0] === 'ticket') {
 }
 
 const code = await runHdb(argv, { ctx, io, tickets });
+await ctx.ocr?.terminate();
 ctx.db.close();
 process.exit(code);

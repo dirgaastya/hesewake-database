@@ -58,6 +58,8 @@ export function createItemRepository(db) {
     `),
     get: db.prepare('SELECT * FROM items WHERE id = ?'),
     all: db.prepare('SELECT * FROM items ORDER BY id'),
+    setExtractedText: db.prepare('UPDATE items SET extracted_text = ? WHERE id = ?'),
+    imagesWithoutText: db.prepare("SELECT * FROM items WHERE type = 'file' AND file_mime LIKE 'image/%' AND (extracted_text IS NULL OR extracted_text = '') ORDER BY id"),
     update: db.prepare(`
       UPDATE items
       SET title = @title, content = @content, metadata = @metadata, ticket_id = @ticketId,
@@ -283,6 +285,18 @@ export function createItemRepository(db) {
     return stmts.all.all().map((row) => toItem(row, { full: true }));
   }
 
+  function setExtractedText(id, text) {
+    findRow(id);
+    db.transaction(() => {
+      stmts.setExtractedText.run(text, id);
+      reindex(id);
+    })();
+  }
+
+  function imagesWithoutText() {
+    return stmts.imagesWithoutText.all().map((row) => toItem(row, { full: true }));
+  }
+
   function tags() {
     return stmts.tagCounts.all();
   }
@@ -319,6 +333,6 @@ export function createItemRepository(db) {
 
   return {
     create, get, update, versions, restoreVersion, trash, restore, purge, purgeExpired,
-    findBySourceHash, findLinkByUrl, all, list, search, tags,
+    findBySourceHash, findLinkByUrl, all, list, search, tags, setExtractedText, imagesWithoutText,
   };
 }

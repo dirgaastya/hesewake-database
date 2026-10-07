@@ -15,7 +15,7 @@ if (!positionals[0] && !values.bookmarks) {
   process.exit(1);
 }
 
-const { importer, config } = openContext();
+const { importer, config, ocr } = openContext();
 
 if (values.bookmarks) {
   const result = importer.importBookmarks(readFileSync(resolve(values.bookmarks), 'utf8'), { tags });
@@ -33,3 +33,5 @@ if (positionals[0]) {
   console.log(`Selesai: ${summary.created} dibuat, ${summary.skipped} duplikat dilewati, ${summary.failed.length} gagal`);
   for (const failure of summary.failed) console.log(`  gagal  ${failure.path}: ${failure.error}`);
 }
+
+await ocr?.terminate();

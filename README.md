@@ -67,6 +67,12 @@ Tambah `--json` di `search`, `show`, dan `ticket` untuk dipakai skrip lain (misa
 
 Kalau hesewake-cli ada di `~/Desktop/project/hesewake-cli` (atau `HESEWAKE_CLI_DIR`) dan sudah login, server dan `hdb ticket` menampilkan judul, stage, dan link tiket Odoo untuk item yang punya nomor tiket. Kredensial Odoo tetap dikelola hesewake-cli; hesewake-database tidak membaca atau menyimpannya.
 
+## Relasi, koleksi, dan OCR
+
+- **Terkait**: tautkan item yang berhubungan (misalnya error dengan query perbaikannya). Relasi dua arah, muncul di pane detail kedua item.
+- **Koleksi**: kelompokkan item lintas tipe (misalnya "Release v2.3"). Buat dari sidebar atau dari pane detail.
+- **OCR**: teks di screenshot (PNG, JPG, WebP, BMP) ikut bisa dicari. Data bahasa Indonesia + Inggris diunduh sekali ke `<data>/ocr-cache` (butuh internet saat pertama), setelah itu offline. Gambar lama: `npm run ocr`. Matikan dengan `HDB_OCR=0`.
+
 ## Import massal
 
 ```bash

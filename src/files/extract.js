@@ -31,8 +31,13 @@ async function extractXlsx(buffer) {
   return lines.join('\n');
 }
 
+const OCR_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.bmp']);
+const OCR_MIME = /^image\/(png|jpeg|webp|bmp)$/;
+
+export const canOcr = (mime, name) => OCR_MIME.test(mime) || OCR_EXTENSIONS.has(extname(name).toLowerCase());
+
 // Best-effort: gagal extract cuma berarti file tidak bisa dicari by isi, upload tetap jalan.
-export async function extractText(buffer, { mime = '', name = '' } = {}) {
+export async function extractText(buffer, { mime = '', name = '', ocr } = {}) {
   const ext = extname(name).toLowerCase();
   try {
     let text = '';
@@ -43,6 +48,8 @@ export async function extractText(buffer, { mime = '', name = '' } = {}) {
       text = (await mammoth.extractRawText({ buffer })).value;
     } else if (ext === '.xlsx') {
       text = await extractXlsx(buffer);
+    } else if (ocr && canOcr(mime, name)) {
+      text = await ocr.recognize(buffer);
     } else if (mime.startsWith('text/') || TEXT_EXTENSIONS.has(ext)) {
       text = buffer.toString('utf8');
     }

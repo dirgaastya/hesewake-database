@@ -14,7 +14,8 @@
     "backup": "node src/cli/backup.js",
     "dev:web": "vite --config web/vite.config.js",
     "build": "vite build --config web/vite.config.js",
-    "test:web": "vitest run --config web/vite.config.js"
+    "test:web": "vitest run --config web/vite.config.js",
+    "ocr": "node src/cli/ocr.js"
   },
   "dependencies": {
     "@codemirror/lang-javascript": "^6.2.5",
@@ -42,6 +43,7 @@
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
     "sql-formatter": "^15.9.0",
+    "tesseract.js": "^7.0.0",
     "unpdf": "^1.8.1"
   },
   "devDependencies": {

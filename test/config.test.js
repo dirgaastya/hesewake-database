@@ -21,6 +21,8 @@ test('loadConfig default', () => {
     maxImportBytes: 1024 * MB,
     allowedHosts: ['127.0.0.1:4321', 'localhost:4321'],
     sessionDays: 30,
+    ocr: true,
+    ocrCacheDir: join(dataDir, 'ocr-cache'),
     hesewakeCliDir: join(homedir(), 'Desktop', 'project', 'hesewake-cli'),
   });
 });

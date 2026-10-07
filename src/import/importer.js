@@ -70,7 +70,7 @@ export function parseBookmarksHtml(html) {
   return bookmarks;
 }
 
-export function createImporter({ repo, storage }) {
+export function createImporter({ repo, storage, ocr }) {
   async function importFile({ buffer, name, mime = '', tags = [] }) {
     const hash = createHash('sha256').update(buffer).digest('hex');
     const existing = repo.findBySourceHash(hash);
@@ -103,7 +103,7 @@ export function createImporter({ repo, storage }) {
             size: stored.size,
             path: stored.path,
             hash: stored.hash,
-            extractedText: await extractText(buffer, { mime: fileMime, name }),
+            extractedText: await extractText(buffer, { mime: fileMime, name, ocr }),
           },
         },
       );

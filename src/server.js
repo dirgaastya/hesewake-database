@@ -10,7 +10,7 @@ import { createTicketService, loadHesewakeCli } from './integrations/odoo.js';
 
 const HOUR_MS = 60 * 60 * 1000;
 
-const { config, db, repo, storage, importer, relations } = openContext();
+const { config, db, repo, storage, importer, relations, ocr } = openContext();
 
 function dailyJobs() {
   const purged = repo.purgeExpired({ days: config.trashDays });
@@ -45,6 +45,7 @@ const api = createApp({
   storage,
   importer,
   relations,
+  ocr,
   tickets: tickets.available ? tickets : undefined,
   auth: createAccountService(db, { sessionDays: config.sessionDays }),
   allowedHosts: config.allowedHosts,

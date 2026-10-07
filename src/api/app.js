@@ -66,6 +66,7 @@ export function createApp({
   auth,
   tickets,
   relations,
+  ocr,
   allowedHosts,
   rateLimiter = createRateLimiter(),
   linkPreview = fetchLinkPreview,
@@ -216,7 +217,7 @@ export function createApp({
             size: stored.size,
             path: stored.path,
             hash: stored.hash,
-            extractedText: await extractText(buffer, { mime, name: file.name }),
+            extractedText: await extractText(buffer, { mime, name: file.name, ocr }),
           },
         },
       );

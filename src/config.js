@@ -24,6 +24,8 @@ export function loadConfig(env = process.env) {
     maxImportBytes: Number(env.HDB_MAX_IMPORT_MB ?? 1024) * MB,
     allowedHosts: [`127.0.0.1:${port}`, `localhost:${port}`, ...extraHosts],
     sessionDays: Number(env.HDB_SESSION_DAYS ?? 30),
+    ocr: env.HDB_OCR !== '0',
+    ocrCacheDir: join(dataDir, 'ocr-cache'),
     hesewakeCliDir: env.HESEWAKE_CLI_DIR || join(homedir(), 'Desktop', 'project', 'hesewake-cli'),
   };
 }
