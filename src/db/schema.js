@@ -58,6 +58,25 @@ export const MIGRATIONS = [
     tokenize = 'unicode61 remove_diacritics 2'
   );
   `,
+  `
+  CREATE TABLE account (
+    id                INTEGER PRIMARY KEY CHECK (id = 1),
+    kdf_salt          TEXT    NOT NULL,
+    kdf_iterations    INTEGER NOT NULL,
+    auth_hash         TEXT    NOT NULL,
+    wrapped_vault_key TEXT    NOT NULL,
+    created_at        TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    updated_at        TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+  );
+
+  CREATE TABLE sessions (
+    id           TEXT PRIMARY KEY,
+    device       TEXT NOT NULL,
+    created_at   TEXT NOT NULL,
+    last_seen_at TEXT NOT NULL,
+    expires_at   TEXT NOT NULL
+  );
+  `,
 ];
 
 export function migrate(db) {
