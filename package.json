@@ -8,9 +8,13 @@
   },
   "scripts": {
     "start": "node src/server.js",
-    "test": "node --test"
+    "test": "node --test",
+    "import": "node src/cli/import.js",
+    "export": "node src/cli/export.js",
+    "backup": "node src/cli/backup.js"
   },
   "dependencies": {
+    "@hono/node-server": "^2.1.3",
     "better-sqlite3": "^13.0.3",
     "exceljs": "^4.4.0",
     "hono": "^4.13.13",
