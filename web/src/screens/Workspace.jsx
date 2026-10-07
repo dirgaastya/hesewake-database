@@ -7,7 +7,10 @@ import { toItemsQuery } from '../lib/search-query.js';
 import { effectiveFilters, listStateToSearch, readListState } from '../lib/workspace-url.js';
 import { useShortcuts } from '../lib/shortcuts.js';
 import { easeSheet } from '../lib/motion.js';
-import { useCollections } from '../lib/collections.js';
+import { useCollectionActions, useCollections } from '../lib/collections.js';
+import { useToast } from '../components/Toast.jsx';
+import { Dialog } from '../components/Dialog.jsx';
+import { CollectionNameDialog } from '../components/CollectionDialogs.jsx';
 import { useMedia } from '../lib/useMedia.js';
 import { Button, EmptyState, IconButton, Kbd, MetaLabel, SkeletonRows, cx } from '../components/ui.jsx';
 import { ItemRow } from '../components/ItemRow.jsx';
@@ -51,7 +54,60 @@ export function TopBar({ onMenu, search, onSearch, searchRef }) {
   );
 }
 
-function ListPane({ state, items, isPending, isFetching, selectedId, onSelect, filters }) {
+function CollectionActions({ collection, onDeleted }) {
+  const actions = useCollectionActions();
+  const toast = useToast();
+  const [renaming, setRenaming] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  return (
+    <div className="flex items-center gap-1">
+      <Button size="sm" variant="ghost" onClick={() => setRenaming(true)}>
+        Ganti nama
+      </Button>
+      <Button size="sm" variant="danger" onClick={() => setDeleting(true)}>
+        Hapus koleksi
+      </Button>
+      <CollectionNameDialog
+        open={renaming}
+        onClose={() => setRenaming(false)}
+        initial={collection.name}
+        title="Ganti nama koleksi"
+        action="Simpan"
+        onSubmit={async (name) => {
+          await actions.rename(collection.id, name);
+          toast('Nama koleksi diganti.');
+        }}
+      />
+      <Dialog
+        open={deleting}
+        role="alertdialog"
+        onClose={() => setDeleting(false)}
+        title={`Hapus koleksi "${collection.name}"?`}
+        description="Hanya koleksinya yang dihapus. Item di dalamnya tetap ada."
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setDeleting(false)}>
+              Batal
+            </Button>
+            <Button
+              variant="danger-solid"
+              onClick={async () => {
+                setDeleting(false);
+                await actions.remove(collection.id);
+                toast('Koleksi dihapus.');
+                onDeleted();
+              }}
+            >
+              Hapus koleksi
+            </Button>
+          </>
+        }
+      />
+    </div>
+  );
+}
+
+function ListPane({ state, items, isPending, isFetching, selectedId, onSelect, filters, collection, onCollectionDeleted }) {
   const listRef = useRef(null);
   const searching = Boolean(filters.text);
 
@@ -60,6 +116,7 @@ function ListPane({ state, items, isPending, isFetching, selectedId, onSelect, f
   }, [selectedId]);
 
   const meta = [
+    collection?.name,
     isPending ? 'Memuat' : `${items.length}${items.length === LIMIT ? '+' : ''} item`,
     searching ? 'Urut: relevansi' : 'Urut: terakhir diubah',
     isFetching && !isPending ? 'Memperbarui' : null,
@@ -102,8 +159,9 @@ function ListPane({ state, items, isPending, isFetching, selectedId, onSelect, f
 
   return (
     <section className="flex min-h-0 flex-col border-r border-line bg-surface">
-      <div className="flex h-9 shrink-0 items-center justify-between gap-3 border-b border-line px-3">
+      <div className="flex h-9 shrink-0 items-center justify-between gap-3 border-b border-line pl-3 pr-1">
         <MetaLabel items={meta} />
+        {collection && <CollectionActions collection={collection} onDeleted={onCollectionDeleted} />}
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto">{body}</div>
     </section>
@@ -186,7 +244,17 @@ export function Workspace({ route }) {
         >
           <Sidebar state={state} onChange={changeState} onNavigate={(to) => navigate(to)} collections={collections.data ?? []} />
         </div>
-        <ListPane state={state} filters={filters} items={list} isPending={items.isPending} isFetching={items.isFetching} selectedId={selectedId} onSelect={select} />
+        <ListPane
+          state={state}
+          filters={filters}
+          items={list}
+          isPending={items.isPending}
+          isFetching={items.isFetching}
+          selectedId={selectedId}
+          onSelect={select}
+          collection={(collections.data ?? []).find((c) => String(c.id) === state.collection)}
+          onCollectionDeleted={() => changeState({ ...state, collection: '' })}
+        />
         {!narrow && (
           <div className="min-h-0 overflow-hidden bg-canvas">
             {detail ?? (

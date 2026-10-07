@@ -20,6 +20,7 @@ import { SecretField, copySecret } from '../components/SecretField.jsx';
 import { Button, EmptyState, Field, IconButton, MetaLabel, TextInput, TypeStamp, SkeletonRows } from '../components/ui.jsx';
 import { TicketInfo } from '../components/TicketInfo.jsx';
 import { RelatedItems } from '../components/RelatedItems.jsx';
+import { ItemCollections } from '../components/CollectionDialogs.jsx';
 
 const COPY_LABEL = {
   query: 'Salin query',
@@ -365,6 +366,7 @@ export function ItemDetail({ itemId, suffix, onClose }) {
       <Body item={item} onCopy={copy} copied={copied} />
       {item.ticketId && <TicketInfo ticketId={item.ticketId} />}
       <RelatedItems item={item} suffix={suffix} />
+      <ItemCollections item={item} />
 
       <Dialog
         open={Boolean(fill)}

@@ -1,11 +1,15 @@
+import { useState } from 'react';
 import { motion } from 'motion/react';
-import { Archive, FolderInput, Inbox, Pin, Settings, Trash2, Library } from 'lucide-react';
+import { Archive, FolderInput, Inbox, Pin, Plus, Settings, Trash2, Library } from 'lucide-react';
+import { useCollectionActions } from '../lib/collections.js';
+import { useToast } from '../components/Toast.jsx';
+import { CollectionNameDialog } from '../components/CollectionDialogs.jsx';
 import { useTags } from '../lib/queries.js';
 import { TYPE_META, TYPE_ORDER } from '../lib/types.js';
 import { VIEWS } from '../lib/workspace-url.js';
 import { spring } from '../lib/motion.js';
 import { TYPE_ICON } from '../components/icons.js';
-import { MetaLabel, cx } from '../components/ui.jsx';
+import { IconButton, MetaLabel, cx } from '../components/ui.jsx';
 
 const VIEW_ICON = { all: Inbox, pinned: Pin, archived: Archive, trash: Trash2 };
 
@@ -33,6 +37,9 @@ function NavItem({ active, icon: Icon, children, count, onClick, hash }) {
 
 export function Sidebar({ state, onChange, onNavigate, collections = [] }) {
   const tags = useTags();
+  const actions = useCollectionActions();
+  const toast = useToast();
+  const [creating, setCreating] = useState(false);
   const pick = (patch) => onChange({ ...state, view: 'all', type: '', tag: '', collection: '', ...patch });
 
   return (
@@ -43,9 +50,13 @@ export function Sidebar({ state, onChange, onNavigate, collections = [] }) {
         </NavItem>
       ))}
 
+      <div className="flex items-center justify-between pb-1 pl-2 pr-0.5 pt-4">
+        <MetaLabel items={['Koleksi']} />
+        <IconButton icon={Plus} size={14} label="Koleksi baru" onClick={() => setCreating(true)} />
+      </div>
+      {collections.length === 0 && <p className="m-0 px-2 text-xs text-fg-subtle">Kelompokkan item lintas tipe, misalnya per rilis.</p>}
       {collections.length > 0 && (
         <>
-          <MetaLabel className="px-2 pb-1 pt-4" items={['Koleksi']} />
           {collections.map((collection) => (
             <NavItem
               key={collection.id}
@@ -86,6 +97,17 @@ export function Sidebar({ state, onChange, onNavigate, collections = [] }) {
           Pengaturan
         </NavItem>
       </div>
+      <CollectionNameDialog
+        open={creating}
+        onClose={() => setCreating(false)}
+        title="Koleksi baru"
+        action="Buat koleksi"
+        onSubmit={async (name) => {
+          const created = await actions.create(name);
+          toast(`Koleksi "${created.name}" dibuat.`);
+          pick({ collection: String(created.id) });
+        }}
+      />
     </nav>
   );
 }
