@@ -604,6 +604,7 @@ git commit -m "feat: akun tunggal, sesi per perangkat, dan ganti master password
 **Interfaces:**
 - Consumes: `ForbiddenError`, `TooManyRequestsError`, `AppError`
 - Produces:
+  - `requestHost(c) → string` (header `Host`, atau host dari URL request kalau header tidak ada)
   - `hostGuard(allowedHosts)` → middleware: `Host` di luar daftar → `ForbiddenError` (menangkal DNS rebinding)
   - `originGuard(allowedHosts)` → middleware: untuk method selain GET/HEAD/OPTIONS, `Origin` harus dari daftar; tanpa `Origin` tapi `Sec-Fetch-Site` lintas situs → ditolak; tanpa keduanya (curl, CLI) → lolos
   - `securityHeaders()` → `secureHeaders` dengan CSP ketat dan `frame-ancestors 'none'`
@@ -702,11 +703,16 @@ import { ForbiddenError, TooManyRequestsError } from '../errors.js';
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 const toSet = (hosts) => new Set(hosts.map((host) => host.toLowerCase()));
 
+// Header Host selalu ada di request HTTP sungguhan; Request buatan (test, fetch internal) hanya membawa URL.
+export function requestHost(c) {
+  return (c.req.header('host') ?? new URL(c.req.url).host).toLowerCase();
+}
+
 // Menangkal DNS rebinding: situs jahat yang mengarahkan domainnya ke 127.0.0.1 tetap mengirim Host miliknya.
 export function hostGuard(allowedHosts) {
   const allowed = toSet(allowedHosts);
   return async (c, next) => {
-    const host = (c.req.header('host') ?? '').toLowerCase();
+    const host = requestHost(c);
     if (!allowed.has(host)) throw new ForbiddenError(`Host tidak diizinkan: ${host || '(kosong)'}`);
     await next();
   };
@@ -982,7 +988,7 @@ Di `src/api/app.js`, tambahkan import:
 
 ```js
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
-import { hostGuard, originGuard, securityHeaders, createRateLimiter, clientKey } from './security.js';
+import { hostGuard, originGuard, securityHeaders, createRateLimiter, clientKey, requestHost } from './security.js';
 import { AppError, AuthError, ForbiddenError, NotFoundError, ValidationError } from '../errors.js';
 ```
 
@@ -1050,7 +1056,7 @@ export function createApp({
     });
 
     app.post('/auth/setup', async (c) => {
-      const hostname = (c.req.header('host') ?? '').split(':')[0].toLowerCase();
+      const hostname = requestHost(c).split(':')[0];
       if (!LOCAL_HOSTS.has(hostname)) throw new ForbiddenError('Buat akun dari laptop server lewat http://127.0.0.1');
       setSessionCookie(c, auth.setup(await readJson(c)));
       return c.json({ ok: true }, 201);
