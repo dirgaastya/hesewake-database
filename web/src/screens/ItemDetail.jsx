@@ -1,8 +1,11 @@
-import { useMemo, useRef, useState } from 'react';
+import { Suspense, lazy, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Archive, ArchiveRestore, Check, Copy, Download, ExternalLink, History, Pencil, Pin, PinOff, RotateCcw, Trash2, X } from 'lucide-react';
 import { api } from '../lib/api.js';
-import { navigate, useDocumentTitle } from '../lib/router.js';
+import { navigate, useDocumentTitle, useLocation } from '../lib/router.js';
+import { readListState } from '../lib/workspace-url.js';
+import { parseSearch } from '../lib/search-query.js';
+import { searchTerms } from '../lib/pdf-search.js';
 import { useItem, useRefresh } from '../lib/queries.js';
 import { relativeTime, formatBytes, padId, daysLeft } from '../lib/format.js';
 import { typeMeta, FIELD_LABELS, CODE_TYPES } from '../lib/types.js';
@@ -21,6 +24,9 @@ import { Button, EmptyState, Field, IconButton, MetaLabel, TextInput, TypeStamp,
 import { TicketInfo } from '../components/TicketInfo.jsx';
 import { RelatedItems } from '../components/RelatedItems.jsx';
 import { ItemCollections } from '../components/CollectionDialogs.jsx';
+
+// pdf.js cukup besar, jadi baru dimuat saat membuka item PDF.
+const PdfPreview = lazy(() => import('../components/PdfPreview.jsx'));
 
 const COPY_LABEL = {
   query: 'Salin query',
@@ -109,7 +115,7 @@ function CodeSection({ item, onCopy, copied }) {
   );
 }
 
-function FileSection({ item }) {
+function FileSection({ item, terms }) {
   const href = `/api/items/${item.id}/download`;
   const inline = INLINE_MIME.test(item.file.mime);
   return (
@@ -125,6 +131,11 @@ function FileSection({ item }) {
           <Download size={14} strokeWidth={1.5} /> Unduh
         </a>
       </div>
+      {item.file.mime === 'application/pdf' && (
+        <Suspense fallback={<div className="h-[70vh] min-h-[420px] rounded-sm bg-surface-2" aria-busy="true" />}>
+          <PdfPreview src={`${href}?inline=1`} terms={terms} />
+        </Suspense>
+      )}
       {/^image\//.test(item.file.mime) && inline && (
         <img src={`${href}?inline=1`} alt={item.title} className="max-h-[420px] max-w-full rounded-sm border border-line object-contain" />
       )}
@@ -158,7 +169,7 @@ function LinkSection({ item }) {
   );
 }
 
-function Body({ item, onCopy, copied }) {
+function Body({ item, onCopy, copied, terms }) {
   if (item.type === 'secret') {
     return (
       <>
@@ -190,7 +201,7 @@ function Body({ item, onCopy, copied }) {
   if (item.type === 'file') {
     return (
       <>
-        <FileSection item={item} />
+        <FileSection item={item} terms={terms} />
         {item.content && (
           <Section label="Catatan">
             <Markdown>{item.content}</Markdown>
@@ -258,6 +269,9 @@ export function ItemDetail({ itemId, suffix, onClose }) {
   const cancelRef = useRef(null);
   const item = query.data;
   useDocumentTitle(item?.title);
+  // Kata yang sedang dicari di daftar ikut disorot di pratinjau PDF.
+  const { search } = useLocation();
+  const terms = useMemo(() => searchTerms(parseSearch(readListState(search).q).text), [search]);
 
   const placeholders = useMemo(() => (item && CODE_TYPES.has(item.type) ? findPlaceholders(item.content) : []), [item]);
 
@@ -363,7 +377,7 @@ export function ItemDetail({ itemId, suffix, onClose }) {
         )}
       </div>
 
-      <Body item={item} onCopy={copy} copied={copied} />
+      <Body item={item} onCopy={copy} copied={copied} terms={terms} />
       {item.ticketId && <TicketInfo ticketId={item.ticketId} />}
       <RelatedItems item={item} suffix={suffix} />
       <ItemCollections item={item} />

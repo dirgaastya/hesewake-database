@@ -12,10 +12,11 @@
     "import": "node src/cli/import.js",
     "export": "node src/cli/export.js",
     "backup": "node src/cli/backup.js",
-    "dev:web": "vite --config web/vite.config.js",
-    "build": "vite build --config web/vite.config.js",
+    "dev:web": "npm run pdfjs-assets && vite --config web/vite.config.js",
+    "build": "npm run pdfjs-assets && vite build --config web/vite.config.js",
     "test:web": "vitest run --config web/vite.config.js",
-    "ocr": "node src/cli/ocr.js"
+    "ocr": "node src/cli/ocr.js",
+    "pdfjs-assets": "node scripts/copy-pdfjs-assets.js"
   },
   "dependencies": {
     "@codemirror/lang-javascript": "^6.2.5",
@@ -38,6 +39,7 @@
     "mammoth": "^1.13.0",
     "mermaid": "^12.1.0",
     "motion": "^14.0.0",
+    "pdfjs-dist": "^6.4.299",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-markdown": "^10.1.0",

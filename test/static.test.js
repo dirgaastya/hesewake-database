@@ -44,6 +44,13 @@ test('aset statis dan API tetap terpisah', async () => {
   assert.deepEqual(await missing.json(), { error: 'Endpoint tidak ditemukan' });
 });
 
+test('file statis yang tidak ada → 404, bukan index.html', async () => {
+  const app = setup();
+  const res = await app.request('/pdfjs/standard_fonts/TidakAda.pfb');
+  assert.equal(res.status, 404);
+  assert.doesNotMatch(await res.text(), /id="root"/);
+});
+
 test('UI belum di-build: pesan jelas', async () => {
   const res = await setup({ withDist: false }).request('/');
   assert.equal(res.status, 503);

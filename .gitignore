@@ -4,3 +4,4 @@ data/
 web/dist/
 data-*/
 *.log
+web/public/pdfjs/

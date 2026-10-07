@@ -21,6 +21,7 @@ export function createRootApp({ api, distDir }) {
   // serveStatic membaca path relatif terhadap working directory.
   root.use('/*', serveStatic({ root: relative(process.cwd(), distDir) }));
   const indexHtml = readFileSync(indexFile, 'utf8');
-  root.get('*', (c) => c.html(indexHtml));
+  // Path berekstensi (font, wasm, aset) yang tidak ada harus 404, bukan halaman SPA berstatus 200.
+  root.get('*', (c) => (/\.[a-z0-9]+$/i.test(c.req.path) ? c.text('File tidak ditemukan', 404) : c.html(indexHtml)));
   return root;
 }
