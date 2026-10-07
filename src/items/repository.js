@@ -4,6 +4,47 @@ import { NotFoundError, ValidationError } from '../errors.js';
 const NOW = `strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const MAX_VERSIONS = 50;
+const MAX_LIMIT = 200;
+
+// Tiap kata jadi phrase-prefix ("kata"*) supaya input user tidak pernah dibaca sebagai syntax FTS5.
+export function buildMatchQuery(q) {
+  return String(q)
+    .split(/\s+/)
+    .map((token) => token.replace(/"/g, ''))
+    .filter((token) => /[\p{L}\p{N}]/u.test(token))
+    .map((token) => `"${token}"*`)
+    .join(' ');
+}
+
+function buildFilters({ type, tag, ticketId, pinned, archived = false, trashed = false, limit = 50, offset = 0 } = {}) {
+  const clauses = [];
+  const params = {
+    limit: Math.min(Math.max(limit, 1), MAX_LIMIT),
+    offset: Math.max(offset, 0),
+  };
+  if (trashed) {
+    clauses.push('i.deleted_at IS NOT NULL');
+  } else {
+    clauses.push('i.deleted_at IS NULL', archived ? 'i.archived = 1' : 'i.archived = 0');
+  }
+  if (type) {
+    clauses.push('i.type = @type');
+    params.type = type;
+  }
+  if (tag) {
+    clauses.push('i.id IN (SELECT it.item_id FROM item_tags it JOIN tags t ON t.id = it.tag_id WHERE t.name = @tag)');
+    params.tag = tag.trim().toLowerCase();
+  }
+  if (ticketId != null) {
+    clauses.push('i.ticket_id = @ticketId');
+    params.ticketId = ticketId;
+  }
+  if (pinned !== undefined) {
+    clauses.push('i.pinned = @pinned');
+    params.pinned = pinned ? 1 : 0;
+  }
+  return { clauses, params };
+}
 
 export function createItemRepository(db) {
   const stmts = {
@@ -242,5 +283,38 @@ export function createItemRepository(db) {
     return stmts.tagCounts.all();
   }
 
-  return { create, get, update, versions, restoreVersion, trash, restore, purge, purgeExpired, findBySourceHash, findLinkByUrl, all, tags };
+  function list(filters = {}) {
+    const { clauses, params } = buildFilters(filters);
+    const rows = db
+      .prepare(`
+        SELECT i.* FROM items i
+        WHERE ${clauses.join(' AND ')}
+        ORDER BY i.pinned DESC, i.updated_at DESC, i.id DESC
+        LIMIT @limit OFFSET @offset
+      `)
+      .all(params);
+    return rows.map((row) => toItem(row));
+  }
+
+  function search(q, filters = {}) {
+    const match = buildMatchQuery(q);
+    if (!match) return [];
+    const { clauses, params } = buildFilters(filters);
+    const where = ['items_fts MATCH @match', ...clauses].join(' AND ');
+    const rows = db
+      .prepare(`
+        SELECT i.*, snippet(items_fts, 1, '[', ']', '…', 12) AS snippet
+        FROM items_fts JOIN items i ON i.id = items_fts.rowid
+        WHERE ${where}
+        ORDER BY bm25(items_fts, 5.0, 1.0)
+        LIMIT @limit OFFSET @offset
+      `)
+      .all({ ...params, match });
+    return rows.map((row) => ({ ...toItem(row), snippet: row.snippet }));
+  }
+
+  return {
+    create, get, update, versions, restoreVersion, trash, restore, purge, purgeExpired,
+    findBySourceHash, findLinkByUrl, all, list, search, tags,
+  };
 }
