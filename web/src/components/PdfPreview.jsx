@@ -107,11 +107,9 @@ export default function PdfPreview({ src, terms = [] }) {
 
   useEffect(() => {
     let cancelled = false;
-    let loaded = null;
     const task = getDocument({ url: src, ...ASSETS });
     task.promise
       .then(async (pdf) => {
-        loaded = pdf;
         const dims = [];
         for (let n = 1; n <= pdf.numPages; n++) {
           const page = await pdf.getPage(n);
@@ -128,8 +126,8 @@ export default function PdfPreview({ src, terms = [] }) {
       });
     return () => {
       cancelled = true;
-      task.destroy();
-      loaded?.destroy();
+      // Di pdf.js v6 hanya loading task yang punya destroy(); itu sekaligus menutup dokumen dan worker-nya.
+      task.destroy().catch(() => {});
     };
   }, [src]);
 
