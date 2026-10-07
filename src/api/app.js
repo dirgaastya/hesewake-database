@@ -65,6 +65,7 @@ export function createApp({
   importer,
   auth,
   tickets,
+  relations,
   allowedHosts,
   rateLimiter = createRateLimiter(),
   linkPreview = fetchLinkPreview,
@@ -159,6 +160,7 @@ export function createApp({
       archived: parseFlag(q.archived),
       trashed: parseFlag(q.trashed),
       pinned: q.pinned ? parseFlag(q.pinned) : undefined,
+      collection: parseOptionalInt(q.collection, 'collection'),
       limit: parseOptionalInt(q.limit, 'limit') ?? 50,
       offset: parseOptionalInt(q.offset, 'offset') ?? 0,
     };
@@ -263,6 +265,41 @@ export function createApp({
     if (!(form.file instanceof File)) throw new ValidationError('Field "file" wajib diisi (hasil export bookmark browser)');
     return c.json(importer.importBookmarks(await form.file.text(), { tags: parseTags(form.tags) }));
   });
+
+  if (relations) {
+    app.get('/items/:id/links', (c) => c.json(relations.linksOf(parseId(c))));
+    app.post('/items/:id/links', async (c) => {
+      const id = parseId(c);
+      const { targetId } = await readJson(c);
+      const target = parseOptionalInt(targetId, 'targetId');
+      if (!target) throw new ValidationError('targetId wajib diisi');
+      relations.link(id, target);
+      return c.json(relations.linksOf(id), 201);
+    });
+    app.delete('/items/:id/links/:targetId', (c) => {
+      relations.unlink(parseId(c), parseId(c, 'targetId'));
+      return c.body(null, 204);
+    });
+
+    app.get('/collections', (c) => c.json(relations.collections()));
+    app.post('/collections', async (c) => c.json(relations.createCollection((await readJson(c)).name), 201));
+    app.patch('/collections/:id', async (c) => c.json(relations.renameCollection(parseId(c), (await readJson(c)).name)));
+    app.delete('/collections/:id', (c) => {
+      relations.deleteCollection(parseId(c));
+      return c.body(null, 204);
+    });
+    app.post('/collections/:id/items', async (c) => {
+      const itemId = parseOptionalInt((await readJson(c)).itemId, 'itemId');
+      if (!itemId) throw new ValidationError('itemId wajib diisi');
+      relations.addToCollection(parseId(c), itemId);
+      return c.body(null, 204);
+    });
+    app.delete('/collections/:id/items/:itemId', (c) => {
+      relations.removeFromCollection(parseId(c), parseId(c, 'itemId'));
+      return c.body(null, 204);
+    });
+    app.get('/items/:id/collections', (c) => c.json(relations.collectionsOf(parseId(c))));
+  }
 
   app.get('/tickets/:id', async (c) => {
     if (!tickets) throw new TicketUnavailableError();

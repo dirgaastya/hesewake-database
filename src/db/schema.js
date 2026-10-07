@@ -77,6 +77,30 @@ export const MIGRATIONS = [
     expires_at   TEXT NOT NULL
   );
   `,
+  `
+  CREATE TABLE item_links (
+    a_id       INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+    b_id       INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+    created_at TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    PRIMARY KEY (a_id, b_id),
+    CHECK (a_id < b_id)
+  );
+  CREATE INDEX idx_item_links_b ON item_links(b_id);
+
+  CREATE TABLE collections (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    name       TEXT    NOT NULL UNIQUE COLLATE NOCASE,
+    created_at TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+  );
+
+  CREATE TABLE collection_items (
+    collection_id INTEGER NOT NULL REFERENCES collections(id) ON DELETE CASCADE,
+    item_id       INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+    added_at      TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    PRIMARY KEY (collection_id, item_id)
+  );
+  CREATE INDEX idx_collection_items_item ON collection_items(item_id);
+  `,
 ];
 
 export function migrate(db) {

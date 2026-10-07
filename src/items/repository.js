@@ -16,7 +16,7 @@ export function buildMatchQuery(q) {
     .join(' ');
 }
 
-function buildFilters({ type, tag, ticketId, pinned, archived = false, trashed = false, limit = 50, offset = 0 } = {}) {
+function buildFilters({ type, tag, ticketId, pinned, collection, archived = false, trashed = false, limit = 50, offset = 0 } = {}) {
   const clauses = [];
   const params = {
     limit: Math.min(Math.max(limit, 1), MAX_LIMIT),
@@ -42,6 +42,10 @@ function buildFilters({ type, tag, ticketId, pinned, archived = false, trashed =
   if (pinned !== undefined) {
     clauses.push('i.pinned = @pinned');
     params.pinned = pinned ? 1 : 0;
+  }
+  if (collection != null) {
+    clauses.push('i.id IN (SELECT item_id FROM collection_items WHERE collection_id = @collection)');
+    params.collection = collection;
   }
   return { clauses, params };
 }
