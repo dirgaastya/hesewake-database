@@ -10,6 +10,8 @@
 
 ## Roadmap
 
+> **Status 2026-10-07:** semua fase selesai. Fase 2: `2026-10-07-hesewake-database-web-ui.md`, Fase 3: `2026-10-07-hesewake-database-cli-odoo.md`, Fase 4: `2026-10-07-hesewake-database-extra.md`.
+
 | Fase | Isi | Plan |
 |---|---|---|
 | **1. Backend** | **Plan 1 (dokumen ini):** data, tipe, tag, search, versi, arsip, trash, preview link, import massal, backup, export, REST API | `2026-10-07-hesewake-database-core.md` |

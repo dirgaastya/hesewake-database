@@ -23,7 +23,7 @@ function ThemePicker() {
     ['dark', 'Gelap'],
   ];
   return (
-    <div role="radiogroup" aria-label="Tema" className="inline-flex rounded-sm bg-surface-2 p-0.5">
+    <div role="radiogroup" aria-label="Tema" className="inline-flex w-fit rounded-sm bg-surface-2 p-0.5">
       {options.map(([value, label]) => (
         <button
           key={value}

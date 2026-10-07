@@ -7,9 +7,29 @@ command, API request, error & solusi, skema tabel, log kerja per tiket, kontak, 
 
 ```bash
 npm install
-npm start          # http://127.0.0.1:4321
-npm test
+npm run build      # build UI web ke web/dist
+npm start          # http://127.0.0.1:4321 (UI + API)
+npm test           # test backend
+npm run test:web   # test UI (vitest)
 ```
+
+Pertama kali buka `http://127.0.0.1:4321` dari laptop server untuk membuat master password.
+
+Development UI dengan hot reload: jalankan `HDB_ALLOWED_HOSTS=localhost:5173 npm start` di satu terminal dan `npm run dev:web` di terminal lain, lalu buka `http://localhost:5173`.
+
+### Shortcut UI
+
+| Shortcut | Aksi |
+|---|---|
+| Ctrl K | Cari item |
+| Ctrl Shift P | Perintah |
+| / | Fokus ke search |
+| N / E / C / H | Item baru / edit / salin / riwayat versi |
+| ↑ ↓ atau J K | Pindah item |
+| Ctrl Enter | Simpan form |
+| Esc | Tutup |
+
+Tempel (Ctrl V) atau seret file ke mana saja di luar kolom input untuk menyimpan cepat; tipe item ditebak otomatis.
 
 | Env | Default | Keterangan |
 |---|---|---|

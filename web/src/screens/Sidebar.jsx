@@ -43,7 +43,7 @@ export function Sidebar({ state, onChange, onNavigate, collections = [] }) {
   const pick = (patch) => onChange({ ...state, view: 'all', type: '', tag: '', collection: '', ...patch });
 
   return (
-    <nav aria-label="Navigasi" className="grid content-start gap-px overflow-y-auto bg-surface p-2">
+    <nav aria-label="Navigasi" className="grid h-full content-start gap-px overflow-y-auto bg-surface p-2">
       {Object.entries(VIEWS).map(([key, label]) => (
         <NavItem key={key} icon={VIEW_ICON[key]} active={!state.type && !state.tag && !state.collection && state.view === key} onClick={() => pick({ view: key })}>
           {label}
