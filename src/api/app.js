@@ -41,6 +41,13 @@ function parseId(c, param = 'id') {
   return id;
 }
 
+function parseItemIds(value) {
+  if (!Array.isArray(value) || !value.length) throw new ValidationError('itemIds wajib berisi minimal satu item');
+  const ids = [...new Set(value.map((id) => parseOptionalInt(id, 'itemIds')))];
+  if (ids.some((id) => !id)) throw new ValidationError('itemIds tidak valid');
+  return ids;
+}
+
 async function readJson(c) {
   let body;
   try {
@@ -168,6 +175,26 @@ export function createApp({
     return c.json(q.q ? repo.search(q.q, filters) : repo.list(filters));
   });
 
+  app.post('/items/batch/trash', async (c) => {
+    const itemIds = parseItemIds((await readJson(c)).itemIds);
+    // Validasi seluruh item terlebih dahulu supaya request gagal tanpa memindahkan sebagian item.
+    itemIds.forEach((id) => repo.get(id));
+    itemIds.forEach((id) => repo.trash(id));
+    return c.json({ affected: itemIds.length });
+  });
+
+  app.post('/items/batch/purge', async (c) => {
+    const itemIds = parseItemIds((await readJson(c)).itemIds);
+    // Validasi seluruh item terlebih dahulu supaya request gagal tanpa menghapus sebagian item.
+    const items = itemIds.map((id) => repo.get(id));
+    if (items.some((item) => !item.deletedAt)) throw new ValidationError('Pindahkan ke trash dulu sebelum hapus permanen');
+    for (const id of itemIds) {
+      const item = repo.purge(id);
+      if (item.file) storage.remove(item.file.path);
+    }
+    return c.json({ affected: itemIds.length });
+  });
+
   app.get('/items/:id', (c) => c.json(repo.get(parseId(c))));
 
   app.post('/items', async (c) => {
@@ -293,6 +320,10 @@ export function createApp({
       const itemId = parseOptionalInt((await readJson(c)).itemId, 'itemId');
       if (!itemId) throw new ValidationError('itemId wajib diisi');
       relations.addToCollection(parseId(c), itemId);
+      return c.body(null, 204);
+    });
+    app.post('/collections/:id/items/batch', async (c) => {
+      relations.addManyToCollection(parseId(c), parseItemIds((await readJson(c)).itemIds));
       return c.body(null, 204);
     });
     app.delete('/collections/:id/items/:itemId', (c) => {

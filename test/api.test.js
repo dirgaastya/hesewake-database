@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openDb } from '../src/db/connection.js';
 import { createItemRepository } from '../src/items/repository.js';
+import { createRelations } from '../src/items/relations.js';
 import { createFileStorage } from '../src/files/storage.js';
 import { createImporter } from '../src/import/importer.js';
 import { createApp } from '../src/api/app.js';
@@ -12,9 +13,10 @@ import { createApp } from '../src/api/app.js';
 const CIPHER = 'v1.AAAAAAAAAAAAAAAA.c2VjcmV0LWRhdGE';
 
 function setup(options = {}) {
-  const repo = createItemRepository(openDb());
+  const db = openDb();
+  const repo = createItemRepository(db);
   const storage = createFileStorage(mkdtempSync(join(tmpdir(), 'hdb-api-')));
-  const app = createApp({ repo, storage, importer: createImporter({ repo, storage }), auth: false, ...options });
+  const app = createApp({ repo, storage, importer: createImporter({ repo, storage }), relations: createRelations(db), auth: false, ...options });
   return { app, storage };
 }
 
@@ -44,6 +46,22 @@ test('CRUD item: create, get, patch, list, search', async () => {
   assert.equal((await (await app.request(`/api/items/${item.id}`, json('PATCH', { pinned: true }))).json()).pinned, true);
   assert.deepEqual(ids(await (await app.request('/api/items?tag=server')).json()), [item.id]);
   assert.deepEqual(ids(await (await app.request('/api/items?q=systemctl')).json()), [item.id]);
+});
+
+test('aksi batch: tambah banyak item ke koleksi dan pindahkan banyak item ke trash', async () => {
+  const { app } = setup();
+  const first = await (await app.request('/api/items', json('POST', { type: 'note', title: 'Pertama' }))).json();
+  const second = await (await app.request('/api/items', json('POST', { type: 'note', title: 'Kedua' }))).json();
+  const collection = await (await app.request('/api/collections', json('POST', { name: 'SOP Oktober' }))).json();
+
+  assert.equal((await app.request(`/api/collections/${collection.id}/items/batch`, json('POST', { itemIds: [first.id, second.id] }))).status, 204);
+  assert.deepEqual(await (await app.request(`/api/items/${first.id}/collections`)).json(), [{ id: collection.id, name: 'SOP Oktober' }]);
+  assert.deepEqual(await (await app.request(`/api/items/${second.id}/collections`)).json(), [{ id: collection.id, name: 'SOP Oktober' }]);
+
+  const trashed = await app.request('/api/items/batch/trash', json('POST', { itemIds: [first.id, second.id, first.id] }));
+  assert.deepEqual(await trashed.json(), { affected: 2 });
+  assert.deepEqual(ids(await (await app.request('/api/items?trashed=1')).json()).sort(), [first.id, second.id].sort());
+  assert.equal((await app.request('/api/items/batch/trash', json('POST', { itemIds: [] }))).status, 400);
 });
 
 test('arsip: hilang dari list default, muncul di ?archived=1', async () => {
@@ -87,6 +105,29 @@ test('trash: delete, restore, hapus permanen', async () => {
   assert.equal((await app.request(`/api/items/${item.id}?permanent=1`, { method: 'DELETE' })).status, 204);
   assert.equal((await app.request(`/api/items/${item.id}`)).status, 404);
   assert.deepEqual(await (await app.request('/api/tags')).json(), []);
+});
+
+test('hapus permanen batch: hanya item di trash, atomik, dan bersihkan file', async () => {
+  const { app, storage } = setup();
+  const first = await (await app.request('/api/items', json('POST', { type: 'note', title: 'Pertama' }))).json();
+  const second = await (await app.request('/api/items', json('POST', { type: 'note', title: 'Kedua' }))).json();
+  const form = new FormData();
+  form.append('file', new Blob(['lampiran']), 'lampiran.txt');
+  const uploaded = await (await app.request('/api/files', { method: 'POST', body: form })).json();
+  const filePath = storage.absolutePath(uploaded.file.path);
+
+  assert.equal((await app.request('/api/items/batch/trash', json('POST', { itemIds: [first.id, uploaded.id] }))).status, 200);
+  const rejected = await app.request('/api/items/batch/purge', json('POST', { itemIds: [first.id, second.id] }));
+  assert.equal(rejected.status, 400);
+  assert.equal((await app.request(`/api/items/${first.id}`)).status, 200, 'item trash tidak boleh terhapus sebagian');
+
+  const purged = await app.request('/api/items/batch/purge', json('POST', { itemIds: [first.id, uploaded.id, first.id] }));
+  assert.deepEqual(await purged.json(), { affected: 2 });
+  assert.equal((await app.request(`/api/items/${first.id}`)).status, 404);
+  assert.equal((await app.request(`/api/items/${uploaded.id}`)).status, 404);
+  assert.equal(existsSync(filePath), false);
+  assert.deepEqual(ids(await (await app.request('/api/items?trashed=1')).json()), []);
+  assert.equal((await app.request('/api/items/batch/purge', json('POST', { itemIds: [] }))).status, 400);
 });
 
 test('secret: hanya menerima ciphertext, list tanpa isi', async () => {
