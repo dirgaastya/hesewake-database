@@ -191,6 +191,7 @@ export function createApp({
     for (const id of itemIds) {
       const item = repo.purge(id);
       if (item.file) storage.remove(item.file.path);
+      if (item.metadata.imageFile) storage.remove(item.metadata.imageFile);
     }
     return c.json({ affected: itemIds.length });
   });
@@ -203,13 +204,20 @@ export function createApp({
     return c.json(repo.create(body), 201);
   });
 
-  app.patch('/items/:id', async (c) => c.json(repo.update(parseId(c), await readJson(c))));
+  app.patch('/items/:id', async (c) => {
+    const id = parseId(c);
+    const previous = repo.get(id);
+    const item = repo.update(id, await readJson(c));
+    if (previous.metadata.imageFile && previous.metadata.imageFile !== item.metadata.imageFile) storage.remove(previous.metadata.imageFile);
+    return c.json(item);
+  });
 
   app.delete('/items/:id', (c) => {
     const id = parseId(c);
     if (parseFlag(c.req.query('permanent'))) {
       const item = repo.purge(id);
       if (item.file) storage.remove(item.file.path);
+      if (item.metadata.imageFile) storage.remove(item.metadata.imageFile);
     } else {
       repo.trash(id);
     }
@@ -253,6 +261,35 @@ export function createApp({
       storage.remove(stored.path);
       throw err;
     }
+  });
+
+  app.post('/items/:id/image', sizeLimit(maxUploadBytes), async (c) => {
+    const id = parseId(c);
+    const item = repo.get(id);
+    if (item.type !== 'link') throw new ValidationError('Gambar attachment hanya untuk item Link');
+    const form = await c.req.parseBody();
+    const file = form.file;
+    if (!(file instanceof File) || !/^image\/(png|jpeg|gif|webp)$/.test(file.type)) {
+      throw new ValidationError('Pilih gambar PNG, JPEG, GIF, atau WebP');
+    }
+    const stored = storage.save(Buffer.from(await file.arrayBuffer()), file.name);
+    try {
+      const updated = repo.update(id, { metadata: { ...item.metadata, image: `/api/items/${id}/image`, imageFile: stored.path, imageMime: file.type } });
+      if (item.metadata.imageFile) storage.remove(item.metadata.imageFile);
+      return c.json(updated);
+    } catch (err) {
+      storage.remove(stored.path);
+      throw err;
+    }
+  });
+
+  app.get('/items/:id/image', (c) => {
+    const item = repo.get(parseId(c));
+    if (!item.metadata.imageFile) throw new NotFoundError('Gambar attachment tidak ditemukan');
+    return c.body(Readable.toWeb(storage.openReadStream(item.metadata.imageFile)), 200, {
+      'Content-Type': item.metadata.imageMime || 'image/png',
+      'Content-Disposition': 'inline',
+    });
   });
 
   app.get('/items/:id/download', (c) => {

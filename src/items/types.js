@@ -15,7 +15,7 @@ export const TYPES = {
   query: { label: 'Query', fields: [{ key: 'language', required: true }, { key: 'database' }] },
   command: { label: 'Command', fields: [{ key: 'shell' }] },
   config: { label: 'Config / Env', fields: [{ key: 'format' }] },
-  link: { label: 'Link', fields: [{ key: 'url', required: true }, { key: 'description' }, { key: 'image' }] },
+  link: { label: 'Link', fields: [{ key: 'url', required: true }, { key: 'description' }, { key: 'image' }, { key: 'imageFile' }, { key: 'imageMime' }] },
   api_request: {
     label: 'API Request',
     fields: [

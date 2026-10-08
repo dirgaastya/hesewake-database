@@ -30,6 +30,10 @@ export function useCollectionActions() {
       await api(`/collections/${id}/items`, { method: 'POST', body: { itemId } });
       refresh();
     },
+    addMany: async (id, itemIds) => {
+      await api(`/collections/${id}/items/batch`, { method: 'POST', body: { itemIds } });
+      refresh();
+    },
     detach: async (id, itemId) => {
       await api(`/collections/${id}/items/${itemId}`, { method: 'DELETE' });
       refresh();

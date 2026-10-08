@@ -4,6 +4,20 @@ Semua perubahan penting pada proyek ini didokumentasikan di berkas ini.
 
 Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/1.1.0/), dan versi menggunakan [Semantic Versioning](https://semver.org/lang/id/).
 
+## [Unreleased]
+
+### Added
+
+- Shell desktop Windows berbasis Tauri yang menjalankan UI dan API Node lokal sebagai satu origin loopback.
+
+### Changed
+
+- Desktop memilih port loopback sementara secara otomatis; data tetap memakai `~/.hesewake-database` dan tidak disimpan dalam folder instalasi.
+
+### Security
+
+- Runtime desktop hanya menerima readiness URL `127.0.0.1`, mempertahankan pemeriksaan Host/Origin API, dan hanya mengizinkan satu instance aplikasi.
+
 ## [0.1.0] - 2026-10-08
 
 ### Added

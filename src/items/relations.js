@@ -107,6 +107,14 @@ export function createRelations(db) {
       stmts.addItem.run(collectionId, itemId);
     },
 
+    addManyToCollection(collectionId, itemIds) {
+      requireCollection(collectionId);
+      for (const itemId of itemIds) requireItem(itemId);
+      db.transaction(() => {
+        for (const itemId of itemIds) stmts.addItem.run(collectionId, itemId);
+      })();
+    },
+
     removeFromCollection(collectionId, itemId) {
       stmts.removeItem.run(collectionId, itemId);
     },

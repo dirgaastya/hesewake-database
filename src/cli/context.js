@@ -7,7 +7,8 @@ import { createImporter } from '../import/importer.js';
 import { createRelations } from '../items/relations.js';
 import { createOcr } from '../files/ocr.js';
 
-export function openContext(config = loadConfig()) {
+export function openContext(config = loadConfig(), env) {
+  if (env) config = loadConfig(env);
   mkdirSync(config.filesDir, { recursive: true });
   const db = openDb(config.dbFile);
   const repo = createItemRepository(db);

@@ -1,0 +1,23 @@
+[package]
+name = "hesewake-database-desktop"
+version = "0.1.0"
+description = "Desktop shell for hesewake-database"
+authors = ["hesewake-database"]
+edition = "2021"
+
+[lib]
+name = "hesewake_database_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "hesewake-database"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2.5.0", features = [] }
+
+[dependencies]
+tauri = { version = "2.9.4", features = [] }
+tauri-plugin-single-instance = "2.3.5"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

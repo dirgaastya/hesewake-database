@@ -114,8 +114,14 @@
   #root {
     height: 100%;
   }
+  #root.hdb-desktop {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
   body {
     margin: 0;
+    user-select: text;
     font-family: var(--font-sans);
     font-size: 14px;
     line-height: 20px;

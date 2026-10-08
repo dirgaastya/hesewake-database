@@ -179,6 +179,29 @@ test('upload, cari, download (stream), trash, hapus permanen file', async () => 
   assert.equal(existsSync(abs), false);
 });
 
+test('gambar link: upload lokal dibaca, diganti URL, lalu dibersihkan saat purge', async () => {
+  const { app, storage } = setup();
+  const link = await (await app.request('/api/items', json('POST', { type: 'link', title: 'Dokumentasi', metadata: { url: 'https://example.com' } }))).json();
+  const form = new FormData();
+  form.append('file', new Blob(['gambar'], { type: 'image/png' }), 'cover.png');
+  const uploaded = await app.request(`/api/items/${link.id}/image`, { method: 'POST', body: form });
+  assert.equal(uploaded.status, 200);
+  const withImage = await uploaded.json();
+  const abs = storage.absolutePath(withImage.metadata.imageFile);
+  assert.equal(await (await app.request(`/api/items/${link.id}/image`)).text(), 'gambar');
+  const replaced = await (await app.request(`/api/items/${link.id}`, json('PATCH', { metadata: { ...withImage.metadata, image: 'https://cdn.example.com/cover.png', imageFile: '', imageMime: '' } }))).json();
+  assert.equal(replaced.metadata.image, 'https://cdn.example.com/cover.png');
+  assert.equal(existsSync(abs), false);
+
+  const second = new FormData();
+  second.append('file', new Blob(['baru'], { type: 'image/webp' }), 'cover.webp');
+  const local = await (await app.request(`/api/items/${link.id}/image`, { method: 'POST', body: second })).json();
+  const localAbs = storage.absolutePath(local.metadata.imageFile);
+  await app.request(`/api/items/${link.id}`, { method: 'DELETE' });
+  await app.request(`/api/items/${link.id}?permanent=1`, { method: 'DELETE' });
+  assert.equal(existsSync(localAbs), false);
+});
+
 test('download inline hanya untuk tipe aman', async () => {
   const { app } = setup();
   const upload = async (name, type) => {

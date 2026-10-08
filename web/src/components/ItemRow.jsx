@@ -1,5 +1,5 @@
 import { forwardRef } from 'react';
-import { Lock, Pin } from 'lucide-react';
+import { Check, Lock, Pin } from 'lucide-react';
 import { TypeStamp, cx } from './ui.jsx';
 import { formatBytes, padId, shortAge, daysLeft } from '../lib/format.js';
 
@@ -30,7 +30,7 @@ function asideFor(item, trashDays) {
   return parts.join(' · ');
 }
 
-export const ItemRow = forwardRef(function ItemRow({ item, selected, onSelect, trashDays = 30 }, ref) {
+export const ItemRow = forwardRef(function ItemRow({ item, selected, onSelect, checked = false, onCheckedChange, trashDays = 30 }, ref) {
   const snippet = snippetFor(item);
   return (
     <div
@@ -41,12 +41,22 @@ export const ItemRow = forwardRef(function ItemRow({ item, selected, onSelect, t
       onClick={() => onSelect(item.id)}
       onKeyDown={(event) => event.key === 'Enter' && onSelect(item.id)}
       className={cx(
-        'grid cursor-default grid-cols-[48px_84px_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 border-b border-line px-3 py-2',
-        '[grid-template-areas:"id_stamp_title_aside"_"._._snip_snip"] max-[560px]:grid-cols-[72px_minmax(0,1fr)_auto] max-[560px]:[grid-template-areas:"stamp_title_aside"_"._snip_snip"]',
+        'grid cursor-default grid-cols-[24px_48px_84px_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 border-b border-line px-3 py-2',
+        '[grid-template-areas:"check_id_stamp_title_aside"_"check_._._snip_snip"] max-[560px]:grid-cols-[24px_72px_minmax(0,1fr)_auto] max-[560px]:[grid-template-areas:"check_stamp_title_aside"_"check_._snip_snip"]',
         'transition-colors duration-[120ms] ease-out',
         selected ? 'bg-accent-soft' : 'hover:bg-surface-2',
       )}
     >
+      <button
+        type="button"
+        role="checkbox"
+        aria-checked={checked}
+        aria-label={`Pilih ${item.title}`}
+        onClick={(event) => { event.stopPropagation(); onCheckedChange?.(item.id); }}
+        className={cx('grid size-4 place-items-center rounded-xs border [grid-area:check]', checked ? 'border-accent bg-accent text-on-accent' : 'border-line-strong hover:border-accent')}
+      >
+        {checked && <Check size={12} strokeWidth={2} aria-hidden="true" />}
+      </button>
       <span className="font-mono text-xs font-medium leading-5 text-fg-subtle tabular-nums [grid-area:id] max-[560px]:hidden">{padId(item.id)}</span>
       <span className="[grid-area:stamp]">
         <TypeStamp type={item.type} />

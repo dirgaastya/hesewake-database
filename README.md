@@ -15,6 +15,17 @@ npm run test:web   # test UI (vitest)
 
 Pertama kali buka `http://127.0.0.1:4321` dari laptop server untuk membuat master password.
 
+## Aplikasi desktop Windows (Tauri)
+
+Desktop membungkus UI React dan backend Node yang sama. Saat dibuka, aplikasi memilih port loopback sementara, lalu memuat UI dari server Node tersebut sehingga API relatif, cookie sesi, dan enkripsi vault di browser tetap satu origin. Hanya satu instance yang dapat berjalan.
+
+```bash
+npm run desktop:dev       # build UI, siapkan runtime, jalankan aplikasi desktop
+npm run desktop:build     # hasil installer NSIS di src-tauri/target/release/bundle/nsis
+```
+
+Installer membawa runtime Node sendiri; pengguna tidak perlu memasang Node.js. Data desktop tetap kompatibel dengan server/CLI dan berada di `~/.hesewake-database` (Windows: `C:\\Users\\<nama>\\.hesewake-database`), bukan pada folder instalasi. Untuk development desktop, gunakan Node 22 atau 24 LTS sesuai `engines` proyek.
+
 Development UI dengan hot reload: jalankan `HDB_ALLOWED_HOSTS=localhost:5173 npm start` di satu terminal dan `npm run dev:web` di terminal lain, lalu buka `http://localhost:5173`.
 
 ### Shortcut UI

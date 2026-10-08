@@ -60,7 +60,7 @@ function TypePicker({ value, onChange }) {
   );
 }
 
-export function ItemForm({ itemId, onDone }) {
+export function ItemForm({ itemId, initialType, onDone }) {
   const editing = itemId != null;
   const existing = useItem(itemId);
   const types = useTypes();
@@ -68,8 +68,15 @@ export function ItemForm({ itemId, onDone }) {
   const toast = useToast();
   const vault = useVault();
   const requestUnlock = useRequestUnlock();
-  const [form, setForm] = useState(() => (editing ? null : { ...EMPTY, ...takePendingDraft() }));
+  const [form, setForm] = useState(() => {
+    if (editing) return null;
+    const draft = takePendingDraft();
+    // Draft dari Quick Capture/command palette harus menang atas filter sidebar.
+    return { ...EMPTY, type: TYPE_META[initialType] ? initialType : EMPTY.type, ...draft };
+  });
   const [file, setFile] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
+  const [imageSource, setImageSource] = useState('upload');
   const [errors, setErrors] = useState({});
   const [general, setGeneral] = useState('');
   const [busy, setBusy] = useState(false);
@@ -150,6 +157,11 @@ export function ItemForm({ itemId, onDone }) {
         saved = editing
           ? await api(`/items/${itemId}`, { method: 'PATCH', body })
           : await api('/items', { method: 'POST', body: { ...body, type: form.type } });
+        if (form.type === 'link' && imageFile) {
+          const image = new FormData();
+          image.append('file', imageFile);
+          saved = await api(`/items/${saved.id}/image`, { method: 'POST', form: image });
+        }
       }
       refresh(saved.id);
       dirty.current = false;
@@ -199,27 +211,24 @@ export function ItemForm({ itemId, onDone }) {
 
         {def.fields.length > 0 && (
           <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-x-4 gap-y-3">
-            {def.fields.map((field) => {
+            {def.fields.filter((field) => field.key !== 'imageFile').map((field) => {
               const id = `meta-${field.key}`;
               const error = errors[`metadata.${field.key}`];
               const value = form.metadata[field.key] ?? '';
               const wide = MULTILINE_FIELDS.has(field.key);
               return (
                 <Field key={field.key} label={FIELD_LABELS[field.key] ?? field.key} required={field.required} htmlFor={id} error={error} className={wide ? 'col-span-full' : ''}>
-                  {field.options ? (
+                  {field.key === 'image' ? (
+                    <div className="grid gap-2">
+                      <div className="flex gap-1"><Button size="sm" variant={imageSource === 'upload' ? 'secondary' : 'ghost'} onClick={() => setImageSource('upload')}>Upload</Button><Button size="sm" variant={imageSource === 'url' ? 'secondary' : 'ghost'} onClick={() => setImageSource('url')}>URL / CDN</Button></div>
+                      {imageSource === 'upload' ? <input id={id} type="file" accept="image/png,image/jpeg,image/gif,image/webp" onChange={(e) => setImageFile(e.target.files?.[0] ?? null)} className="text-[13px] file:mr-3 file:h-8 file:rounded-sm file:border-0 file:bg-surface-2 file:px-3 file:text-[13px] file:font-medium file:text-fg" /> : <TextInput id={id} mono value={value} invalid={Boolean(error)} onChange={(e) => update({ metadata: { ...form.metadata, image: e.target.value, imageFile: '', imageMime: '' } })} />}
+                    </div>
+                  ) : field.options ? (
                     <Select id={id} value={value} onChange={(e) => setMeta(field.key, e.target.value)} options={[...(field.required ? [] : [{ value: '', label: '—' }]), ...field.options]} />
                   ) : wide ? (
                     <TextArea id={id} rows={field.key === 'error_message' ? 4 : 3} value={value} invalid={Boolean(error)} onChange={(e) => setMeta(field.key, e.target.value)} />
                   ) : (
-                    <TextInput
-                      id={id}
-                      mono={MONO_FIELDS.has(field.key)}
-                      value={value}
-                      invalid={Boolean(error)}
-                      onChange={(e) => setMeta(field.key, e.target.value)}
-                      onBlur={field.key === 'url' && form.type === 'link' ? (e) => previewLink(e.target.value.trim()) : undefined}
-                      list={field.key === 'language' ? 'language-options' : undefined}
-                    />
+                    <TextInput id={id} type={field.key === 'date' ? 'date' : 'text'} mono={MONO_FIELDS.has(field.key)} value={value} invalid={Boolean(error)} onChange={(e) => setMeta(field.key, e.target.value)} onBlur={field.key === 'url' && form.type === 'link' ? (e) => previewLink(e.target.value.trim()) : undefined} list={field.key === 'language' ? 'language-options' : undefined} />
                   )}
                 </Field>
               );

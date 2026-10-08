@@ -1,4 +1,4 @@
-import { forwardRef, useId } from 'react';
+import { forwardRef, useEffect, useId, useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { typeMeta } from '../lib/types.js';
 
@@ -152,21 +152,37 @@ export const TextArea = forwardRef(function TextArea({ invalid, mono = true, cla
   );
 });
 
-export function Select({ options, className, ...props }) {
+export function Select({ options, className, value, onChange, id, ...props }) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef(null);
+  const normalized = options.map((option) => (typeof option === 'string' ? { value: option, label: option } : option));
+  const selected = normalized.find((option) => option.value === value) ?? normalized[0];
+  useEffect(() => {
+    const close = (event) => { if (!rootRef.current?.contains(event.target)) setOpen(false); };
+    document.addEventListener('pointerdown', close);
+    return () => document.removeEventListener('pointerdown', close);
+  }, []);
+  const choose = (next) => { onChange({ target: { value: next } }); setOpen(false); };
+  const onKeyDown = (event) => {
+    const index = normalized.findIndex((option) => option.value === value);
+    if (event.key === 'Escape') return setOpen(false);
+    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); return setOpen((current) => !current); }
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      const step = event.key === 'ArrowDown' ? 1 : -1;
+      choose(normalized[(index + step + normalized.length) % normalized.length].value);
+    }
+  };
   return (
-    <div className={cx('relative grid', className)}>
-      <select className={cx(inputBase, 'h-8 appearance-none border-line pl-3 pr-8')} {...props}>
-        {options.map((option) => {
-          const value = typeof option === 'string' ? option : option.value;
-          const label = typeof option === 'string' ? option : option.label;
-          return (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          );
-        })}
-      </select>
-      <ChevronDown size={14} strokeWidth={1.5} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-fg-subtle" aria-hidden="true" />
+    <div ref={rootRef} className={cx('relative', className)}>
+      <button id={id} type="button" role="combobox" aria-expanded={open} aria-controls={`${id}-options`} onClick={() => setOpen((current) => !current)} onKeyDown={onKeyDown} className={cx(inputBase, 'flex h-8 items-center justify-between border-line px-3 text-left')} {...props}>
+        <span>{selected?.label}</span><ChevronDown size={14} strokeWidth={1.5} className="text-fg-subtle" aria-hidden="true" />
+      </button>
+      {open && <div id={`${id}-options`} role="listbox" className="absolute z-30 mt-1 max-h-56 w-full overflow-y-auto rounded-sm border border-line bg-surface py-1 shadow-float">
+        {normalized.map((option) => <button key={option.value} type="button" role="option" aria-selected={option.value === value} onClick={() => choose(option.value)} className={cx('flex w-full px-3 py-1.5 text-left text-[13px]', option.value === value ? 'bg-accent-soft text-accent-text' : 'text-fg hover:bg-surface-2')}>
+          {option.label}
+        </button>)}
+      </div>}
     </div>
   );
 }

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Hesewake Database",
+  "version": "0.1.0",
+  "identifier": "id.hesewake.database",
+  "build": {
+    "beforeBuildCommand": "npm run build && npm run desktop:prepare",
+    "frontendDist": "../web/dist"
+  },
+  "app": {
+    "windows": [],
+    "security": { "csp": null }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "nsis",
+    "resources": ["../desktop-runtime", "../desktop-bin/node.exe"]
+  }
+}

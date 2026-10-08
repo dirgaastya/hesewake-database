@@ -8,3 +8,6 @@ web/dist/
 data-*/
 *.log
 web/public/pdfjs/
+desktop-runtime/
+desktop-bin/
+src-tauri/target/

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from '@tanstack/react-query';
 import { MotionConfig } from 'motion/react';
 import { api } from './lib/api.js';
@@ -8,11 +8,13 @@ import { ToastProvider } from './components/Toast.jsx';
 import { VaultProvider, useVault } from './vault/VaultProvider.jsx';
 import { UnlockProvider } from './vault/UnlockDialog.jsx';
 import { AuthScreen } from './screens/AuthScreen.jsx';
-import { Workspace } from './screens/Workspace.jsx';
-import { ImportScreen } from './screens/ImportScreen.jsx';
-import { SettingsScreen } from './screens/SettingsScreen.jsx';
 import { GlobalLayer } from './screens/GlobalLayer.jsx';
 import { ErrorBoundary } from './components/ErrorBoundary.jsx';
+import { DesktopTitlebar } from './components/DesktopTitlebar.jsx';
+
+const Workspace = lazy(() => import('./screens/Workspace.jsx').then(({ Workspace }) => ({ default: Workspace })));
+const ImportScreen = lazy(() => import('./screens/ImportScreen.jsx').then(({ ImportScreen }) => ({ default: ImportScreen })));
+const SettingsScreen = lazy(() => import('./screens/SettingsScreen.jsx').then(({ SettingsScreen }) => ({ default: SettingsScreen })));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -25,9 +27,11 @@ function Shell() {
   const route = matchRoute(pathname);
   return (
     <ErrorBoundary resetKey={pathname}>
-      {route.screen === 'import' && <ImportScreen />}
-      {route.screen === 'settings' && <SettingsScreen />}
-      {route.screen === 'workspace' && <Workspace route={route} />}
+      <Suspense fallback={<div className="min-h-full bg-canvas" aria-busy="true" />}>
+        {route.screen === 'import' && <ImportScreen />}
+        {route.screen === 'settings' && <SettingsScreen />}
+        {route.screen === 'workspace' && <Workspace route={route} />}
+      </Suspense>
       <GlobalLayer route={route} />
     </ErrorBoundary>
   );
@@ -70,11 +74,14 @@ export function App() {
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
         <MotionConfig reducedMotion="user">
-          <ToastProvider>
-            <VaultProvider>
-              <AuthGate />
-            </VaultProvider>
-          </ToastProvider>
+          <DesktopTitlebar />
+          <div className="flex min-h-0 flex-1 flex-col">
+            <ToastProvider>
+              <VaultProvider>
+                <AuthGate />
+              </VaultProvider>
+            </ToastProvider>
+          </div>
         </MotionConfig>
       </QueryClientProvider>
     </ThemeProvider>
