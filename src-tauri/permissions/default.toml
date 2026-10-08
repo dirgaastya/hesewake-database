@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "allow-open-url"
+description = "Allows opening HTTP(S) URLs in the system default browser."
+commands.allow = ["open_url"]

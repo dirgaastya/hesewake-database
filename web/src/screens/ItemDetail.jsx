@@ -127,7 +127,7 @@ function FileSection({ item, terms }) {
             <ExternalLink size={14} strokeWidth={1.5} /> Buka di tab baru
           </a>
         )}
-        <a href={href} className="inline-flex h-7 items-center gap-2 rounded-sm bg-surface-2 px-2 text-xs font-medium text-fg no-underline hover:bg-line">
+        <a href={href} target="_blank" rel="noreferrer" className="inline-flex h-7 items-center gap-2 rounded-sm bg-surface-2 px-2 text-xs font-medium text-fg no-underline hover:bg-line">
           <Download size={14} strokeWidth={1.5} /> Unduh
         </a>
       </div>

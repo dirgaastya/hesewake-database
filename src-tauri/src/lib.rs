@@ -36,6 +36,21 @@ fn node_path(app: &AppHandle) -> tauri::Result<PathBuf> {
     resource_path(app, "desktop-bin/node.exe")
 }
 
+#[tauri::command]
+fn open_url(url: String) -> Result<(), String> {
+    let parsed = url::Url::parse(&url).map_err(|_| "URL tidak valid".to_owned())?;
+    if !matches!(parsed.scheme(), "http" | "https") {
+        return Err("Hanya URL http atau https yang dapat dibuka".to_owned());
+    }
+
+    Command::new("cmd")
+        .args(["/C", "start", "", &url])
+        .creation_flags(CREATE_NO_WINDOW)
+        .spawn()
+        .map_err(|error| format!("Gagal membuka browser: {error}"))?;
+    Ok(())
+}
+
 fn start_window(app: &AppHandle) -> tauri::Result<()> {
     let runtime_dir = resource_path(app, "desktop-runtime")?;
     let mut command = Command::new(node_path(app)?);
@@ -93,6 +108,7 @@ pub fn run() {
                 let _ = window.set_focus();
             }
         }))
+        .invoke_handler(tauri::generate_handler![open_url])
         .setup(|app| Ok(start_window(app.handle())?))
         .build(tauri::generate_context!())
         .expect("gagal membangun aplikasi Tauri")

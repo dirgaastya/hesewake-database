@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from '@tanstack/react-query';
 import { MotionConfig } from 'motion/react';
+import { invoke } from '@tauri-apps/api/core';
 import { api } from './lib/api.js';
 import { ThemeProvider } from './lib/theme.jsx';
 import { useLocation, matchRoute } from './lib/router.js';
@@ -51,6 +52,19 @@ function AuthGate() {
     window.addEventListener('hdb:unauthorized', onUnauthorized);
     return () => window.removeEventListener('hdb:unauthorized', onUnauthorized);
   }, [vault, client, status]);
+
+  useEffect(() => {
+    if (!('__TAURI_INTERNALS__' in window)) return undefined;
+    const openInBrowser = (event) => {
+      const anchor = event.target.closest('a[target="_blank"]');
+      if (!anchor) return;
+      event.preventDefault();
+      invoke('open_url', { url: anchor.href })
+        .catch((error) => console.error('Gagal membuka browser default:', error));
+    };
+    document.addEventListener('click', openInBrowser);
+    return () => document.removeEventListener('click', openInBrowser);
+  }, []);
 
   if (status.isPending) return <div className="min-h-full bg-canvas" aria-busy="true" />;
   if (status.isError) {
